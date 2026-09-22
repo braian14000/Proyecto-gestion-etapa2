@@ -1,4 +1,3 @@
--- Crea la base de datos (si no existe) y las tablas `user` y `event`
 CREATE DATABASE IF NOT EXISTS flask_login
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
@@ -6,8 +5,10 @@ CREATE DATABASE IF NOT EXISTS flask_login
 USE flask_login;
 
 DROP TABLE IF EXISTS `seguidores`;
+DROP TABLE IF EXISTS `chats_eliminados`;
 DROP TABLE IF EXISTS `respuestas_organizador`;
 DROP TABLE IF EXISTS `mensajes_organizador`;
+DROP TABLE IF EXISTS `recordatorios_eventos`;
 DROP TABLE IF EXISTS `registrados`;
 DROP TABLE IF EXISTS `organizer_role_requests`;
 DROP TABLE IF EXISTS `event`;
@@ -74,6 +75,24 @@ CREATE TABLE `registrados` (
   FOREIGN KEY (`evento_id`) REFERENCES `event` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `recordatorios_eventos` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT UNSIGNED NOT NULL,
+  `evento_id` INT UNSIGNED NOT NULL,
+  `tipo` VARCHAR(50) NOT NULL,
+  `mensaje` TEXT NOT NULL,
+  `fecha_programada` DATETIME NOT NULL,
+  `enviado` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_recordatorio_usuario` (`usuario_id`),
+  KEY `idx_recordatorio_evento` (`evento_id`),
+  KEY `idx_recordatorio_fecha` (`fecha_programada`),
+  KEY `idx_recordatorio_enviado` (`enviado`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`evento_id`) REFERENCES `event` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `mensajes_organizador` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `organizador_id` INT UNSIGNED NOT NULL,
@@ -126,8 +145,16 @@ CREATE TABLE `seguidores` (
   FOREIGN KEY (`seguido_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Asegurar que la tabla event tenga todas las columnas necesarias (si ya existía)
-ALTER TABLE `event` ADD COLUMN `hora` TIME DEFAULT NULL;
-ALTER TABLE `event` ADD COLUMN `categoria` VARCHAR(100) DEFAULT 'General';
+CREATE TABLE `chats_eliminados` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT UNSIGNED NOT NULL,
+  `contacto_id` INT UNSIGNED NOT NULL,
+  `eliminado_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_chat_usuario` (`usuario_id`, `contacto_id`),
+  KEY `idx_chat_contacto` (`contacto_id`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`contacto_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
