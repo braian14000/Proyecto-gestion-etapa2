@@ -10,7 +10,7 @@ import time
 import os
 import random
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time as time_obj
 import re
 import smtplib
 from email.mime.text import MIMEText
@@ -256,6 +256,389 @@ def ensure_notifications_table():
     except Exception as ex:
         print(f"[WARN] No se pudo asegurar la tabla de notificaciones: {ex}")
 
+
+def build_system_event_reminder_message(evento_fecha, evento_hora, evento_titulo, ahora=None):
+    """Genera un recordatorio con el tiempo restante real hasta el evento."""
+    ahora = ahora or datetime.now()
+
+    if isinstance(evento_fecha, str):
+        try:
+            fecha_objetivo = datetime.strptime(evento_fecha, '%Y-%m-%d')
+        except ValueError:
+            fecha_objetivo = ahora
+    else:
+        fecha_objetivo = evento_fecha
+
+    hora_objetivo = evento_hora or '00:00:00'
+    if isinstance(hora_objetivo, str):
+        try:
+            hora_dt = datetime.strptime(hora_objetivo, '%H:%M:%S')
+        except ValueError:
+            try:
+                hora_dt = datetime.strptime(hora_objetivo, '%H:%M')
+            except ValueError:
+                hora_dt = datetime.strptime('00:00', '%H:%M')
+    elif isinstance(hora_objetivo, timedelta):
+        total_seconds = int(hora_objetivo.total_seconds())
+        hora_dt = datetime.min + timedelta(seconds=total_seconds)
+    else:
+        hora_dt = hora_objetivo
+
+    fecha_evento = fecha_objetivo.date() if isinstance(fecha_objetivo, datetime) else fecha_objetivo
+    fecha_hora_evento = datetime.combine(fecha_evento, hora_dt.time())
+    delta = fecha_hora_evento - ahora
+
+    if delta.total_seconds() <= 0:
+        return f"Recordatorio: estás anotado al evento {evento_titulo}, que es el {fecha_objetivo.strftime('%d/%m/%Y')}"
+
+    dias = delta.days
+    horas = delta.seconds // 3600
+    minutos = (delta.seconds % 3600) // 60
+
+    if dias > 0:
+        if horas > 0 and minutos > 0:
+            restante = f"{dias} día(s), {horas} hora(s) y {minutos} minuto(s)"
+        elif horas > 0:
+            restante = f"{dias} día(s) y {horas} hora(s)"
+        else:
+            restante = f"{dias} día(s)"
+    elif horas > 0:
+        restante = f"{horas} hora(s)"
+    elif minutos > 0:
+        restante = f"{minutos} minuto(s)"
+    else:
+        restante = 'menos de 1 minuto'
+
+    return f"Recordatorio: estás anotado al evento {evento_titulo}. Es el {fecha_objetivo.strftime('%d/%m/%Y')} y faltan {restante}"
+
+
+def build_event_change_message(evento_titulo, fecha_anterior, hora_anterior, fecha_nueva, hora_nueva):
+    """Crea el mensaje de cambio de fecha/horario para anotados."""
+    mensaje = f"Se actualizó el evento {evento_titulo}."
+    if fecha_anterior and fecha_nueva and fecha_anterior != fecha_nueva:
+        mensaje += f" Fecha: {fecha_anterior} → {fecha_nueva}."
+    if hora_anterior and hora_nueva and hora_anterior != hora_nueva:
+        mensaje += f" Horario: {hora_anterior} → {hora_nueva}."
+    if not (fecha_anterior and fecha_nueva and fecha_anterior != fecha_nueva) and not (hora_anterior and hora_nueva and hora_anterior != hora_nueva):
+        mensaje += " Revisá los detalles del evento para confirmar el cambio."
+    return mensaje
+
+
+def get_recent_user_notifications(user_id, limit=6):
+    """Devuelve solo cambios de eventos para el panel lateral."""
+    try:
+        cursor = db.connection.cursor()
+        cursor.execute(
+            """
+            SELECT id, asunto, mensaje, created_at, leido
+            FROM mensajes_organizador
+            WHERE organizador_id = %s
+              AND remitente_id IS NULL
+                            AND asunto = 'Cambio de evento'
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (user_id, limit)
+        )
+        rows = cursor.fetchall()
+        return [{
+            'id': row[0],
+            'asunto': row[1] or 'Sistema',
+            'mensaje': row[2],
+            'created_at': row[3].strftime('%d/%m/%Y %H:%M') if hasattr(row[3], 'strftime') else str(row[3]),
+            'leido': bool(row[4])
+        } for row in rows]
+    except Exception as ex:
+        print(f"[WARN] Error obteniendo notificaciones recientes del sistema: {ex}")
+        return []
+
+
+def get_unread_event_changes_count(user_id):
+    """Cuenta cambios de eventos no leídos para la bolita del panel lateral."""
+    try:
+        cursor = db.connection.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM mensajes_organizador
+            WHERE organizador_id = %s
+              AND remitente_id IS NULL
+              AND asunto = 'Cambio de evento'
+              AND leido = 0
+            """,
+            (user_id,)
+        )
+        return cursor.fetchone()[0]
+    except Exception as ex:
+        print(f"[WARN] Error contando cambios de eventos no leídos: {ex}")
+        return 0
+
+
+def notify_event_change_to_registered_users(evento_id, evento_titulo, fecha_anterior, hora_anterior, fecha_nueva, hora_nueva, organizador_id):
+    """Notifica a todos los usuarios anotados cuando cambia fecha o horario del evento."""
+    try:
+        if not evento_id or not evento_titulo:
+            return
+        if not ((fecha_anterior and fecha_nueva and fecha_anterior != fecha_nueva) or (hora_anterior and hora_nueva and hora_anterior != hora_nueva)):
+            return
+
+        cursor = db.connection.cursor()
+        cursor.execute(
+            """
+            SELECT DISTINCT u.id
+            FROM registrados r
+            JOIN `user` u ON u.dni COLLATE utf8mb4_general_ci = r.dni_usuario COLLATE utf8mb4_general_ci
+            WHERE r.evento_id = %s AND u.id IS NOT NULL
+            """,
+            (evento_id,)
+        )
+        usuarios = cursor.fetchall()
+        if not usuarios:
+            return
+
+        mensaje = build_event_change_message(evento_titulo, fecha_anterior, hora_anterior, fecha_nueva, hora_nueva)
+        for (usuario_id,) in usuarios:
+            cursor.execute(
+                """
+                SELECT id
+                FROM mensajes_organizador
+                WHERE organizador_id = %s AND evento_id = %s AND remitente_id IS NULL AND asunto = 'Cambio de evento' AND mensaje = %s
+                LIMIT 1
+                """,
+                (usuario_id, evento_id, mensaje)
+            )
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    INSERT INTO mensajes_organizador (organizador_id, remitente_id, evento_id, asunto, mensaje, leido)
+                    VALUES (%s, NULL, %s, 'Cambio de evento', %s, 0)
+                    """,
+                    (usuario_id, evento_id, mensaje)
+                )
+        db.connection.commit()
+        print(f"[INFO] Se enviaron cambios del evento {evento_id} a {len(usuarios)} usuarios anotados.")
+    except Exception as ex:
+        db.connection.rollback()
+        print(f"[WARN] No se pudieron notificar cambios del evento {evento_id}: {ex}")
+
+
+def ensure_system_event_reminders(usuario_id=None, evento_id=None):
+    """Crea o actualiza recordatorios del sistema para eventos futuros del usuario."""
+    try:
+        cursor = db.connection.cursor()
+
+        if usuario_id is not None:
+            if evento_id is not None:
+                cursor.execute(
+                    """
+                                        SELECT e.id, e.titulo, e.fecha, e.hora
+                                        FROM event e
+                                        WHERE e.id = %s
+                                            AND TIMESTAMP(e.fecha, e.hora) > NOW()
+                                            AND TIMESTAMP(e.fecha, e.hora) <= DATE_ADD(NOW(), INTERVAL 24 HOUR)
+                    """,
+                                        (evento_id,)
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT r.evento_id, e.titulo, e.fecha, e.hora
+                    FROM registrados r
+                    JOIN event e ON e.id = r.evento_id
+                    JOIN `user` u ON u.dni COLLATE utf8mb4_general_ci = r.dni_usuario COLLATE utf8mb4_general_ci
+                                        WHERE u.id = %s
+                                            AND TIMESTAMP(e.fecha, e.hora) > NOW()
+                                            AND TIMESTAMP(e.fecha, e.hora) <= DATE_ADD(NOW(), INTERVAL 24 HOUR)
+                    """,
+                    (usuario_id,)
+                )
+        else:
+            cursor.execute(
+                """
+                SELECT r.evento_id, e.titulo, e.fecha, e.hora, u.id AS usuario_id
+                FROM registrados r
+                JOIN event e ON e.id = r.evento_id
+                JOIN `user` u ON u.dni COLLATE utf8mb4_general_ci = r.dni_usuario COLLATE utf8mb4_general_ci
+                                WHERE TIMESTAMP(e.fecha, e.hora) > NOW()
+                                    AND TIMESTAMP(e.fecha, e.hora) <= DATE_ADD(NOW(), INTERVAL 24 HOUR)
+                """
+            )
+            rows = cursor.fetchall()
+            for evento_id_row, titulo, fecha_evento, hora_evento, usuario_id_row in rows:
+                if usuario_id_row is None:
+                    continue
+                mensaje = build_system_event_reminder_message(fecha_evento, hora_evento, titulo)
+                cursor.execute(
+                    """
+                    SELECT id
+                    FROM mensajes_organizador
+                    WHERE organizador_id = %s AND evento_id = %s AND remitente_id IS NULL AND asunto = 'Sistema'
+                    LIMIT 1
+                    """,
+                    (usuario_id_row, evento_id_row)
+                )
+                existente = cursor.fetchone()
+                if existente:
+                    cursor.execute(
+                        "UPDATE mensajes_organizador SET mensaje = %s, leido = 0 WHERE id = %s",
+                        (mensaje, existente[0])
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        INSERT INTO mensajes_organizador (organizador_id, remitente_id, evento_id, asunto, mensaje, leido)
+                        VALUES (%s, NULL, %s, 'Sistema', %s, 0)
+                        """,
+                        (usuario_id_row, evento_id_row, mensaje)
+                    )
+            db.connection.commit()
+            return
+
+        rows = cursor.fetchall()
+        for evento_id_row, titulo, fecha_evento, hora_evento in rows:
+            mensaje = build_system_event_reminder_message(fecha_evento, hora_evento, titulo)
+            cursor.execute(
+                """
+                SELECT id
+                FROM mensajes_organizador
+                WHERE organizador_id = %s AND evento_id = %s AND remitente_id IS NULL AND asunto = 'Sistema'
+                LIMIT 1
+                """,
+                (usuario_id, evento_id_row)
+            )
+            existente = cursor.fetchone()
+            if existente:
+                cursor.execute(
+                    "UPDATE mensajes_organizador SET mensaje = %s, leido = 0 WHERE id = %s",
+                    (mensaje, existente[0])
+                )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO mensajes_organizador (organizador_id, remitente_id, evento_id, asunto, mensaje, leido)
+                    VALUES (%s, NULL, %s, 'Sistema', %s, 0)
+                    """,
+                    (usuario_id, evento_id_row, mensaje)
+                )
+        db.connection.commit()
+    except Exception as ex:
+        db.connection.rollback()
+        print(f"[WARN] No se pudieron generar los recordatorios del sistema: {ex}")
+
+
+def create_event_reminders(usuario_id, evento_id, evento_titulo, evento_fecha, evento_hora):
+    """Crea 3 recordatorios automáticos para un evento: inmediato, 1 día antes y 1 hora antes"""
+    try:
+        cursor = db.connection.cursor()
+        
+        # Convertir fecha y hora a datetime
+        if isinstance(evento_fecha, str):
+            fecha_dt = datetime.strptime(evento_fecha, '%Y-%m-%d').date()
+        else:
+            fecha_dt = evento_fecha if hasattr(evento_fecha, 'date') is False else evento_fecha.date() if hasattr(evento_fecha, 'date') else evento_fecha
+        
+        if isinstance(evento_hora, str):
+            try:
+                hora_dt = datetime.strptime(evento_hora, '%H:%M:%S').time()
+            except ValueError:
+                hora_dt = datetime.strptime(evento_hora, '%H:%M').time()
+        elif isinstance(evento_hora, timedelta):
+            total_seconds = int(evento_hora.total_seconds())
+            hora_dt = (datetime.min + timedelta(seconds=total_seconds)).time()
+        else:
+            hora_dt = evento_hora.time() if hasattr(evento_hora, 'time') else datetime.min.time()
+        
+        fecha_hora_evento = datetime.combine(fecha_dt, hora_dt)
+        
+        mensaje_inmediato = f"RECORDATORIO: El evento {evento_titulo} comienza en {fecha_dt.strftime('%d/%m/%Y')} a las {hora_dt.strftime('%H:%M')}"
+        fecha_1dia_antes = fecha_hora_evento - timedelta(days=1)
+        mensaje_1dia = f"RECORDATORIO: El evento {evento_titulo} comienza mañana {fecha_dt.strftime('%d/%m/%Y')} a las {hora_dt.strftime('%H:%M')}"
+        fecha_1hora_antes = fecha_hora_evento - timedelta(hours=1)
+        mensaje_1hora = f"RECORDATORIO: El evento {evento_titulo} comienza en 1 hora (a las {hora_dt.strftime('%H:%M')})"
+
+        recordatorios = [
+            ('inmediato', mensaje_inmediato, datetime.now()),
+            ('1_dia_antes', mensaje_1dia, fecha_1dia_antes),
+            ('1_hora_antes', mensaje_1hora, fecha_1hora_antes),
+        ]
+        ahora = datetime.now()
+        for tipo, mensaje, fecha_programada in recordatorios:
+            if tipo != 'inmediato' and fecha_programada <= ahora:
+                continue
+            cursor.execute(
+                """
+                SELECT id
+                FROM recordatorios_eventos
+                WHERE usuario_id = %s AND evento_id = %s AND tipo = %s
+                LIMIT 1
+                """,
+                (usuario_id, evento_id, tipo)
+            )
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    INSERT INTO recordatorios_eventos (usuario_id, evento_id, tipo, mensaje, fecha_programada, enviado)
+                    VALUES (%s, %s, %s, %s, %s, 0)
+                    """,
+                    (usuario_id, evento_id, tipo, mensaje, fecha_programada)
+                )
+        
+        db.connection.commit()
+        print(f"[INFO] Se crearon 3 recordatorios para usuario {usuario_id}, evento {evento_id}")
+    except Exception as ex:
+        db.connection.rollback()
+        print(f"[ERROR] Error creando recordatorios: {ex}")
+
+
+def process_pending_event_reminders():
+    """Procesa los recordatorios que han llegado su hora de envío"""
+    try:
+        cursor = db.connection.cursor()
+        
+        # Obtener todos los recordatorios que tienen que ser enviados
+        cursor.execute(
+            """
+            SELECT r.id, r.usuario_id, r.evento_id, r.tipo, r.mensaje, e.titulo, e.fecha, e.hora
+            FROM recordatorios_eventos r
+            JOIN event e ON e.id = r.evento_id
+            WHERE r.enviado = 0 AND r.fecha_programada <= NOW()
+            ORDER BY r.fecha_programada ASC
+            LIMIT 100
+            """
+        )
+        recordatorios = cursor.fetchall()
+        
+        enviados = 0
+        for recordatorio in recordatorios:
+            recordatorio_id, usuario_id, evento_id, tipo, mensaje, titulo, fecha, hora = recordatorio
+            
+            try:
+                # Crear la notificación en mensajes_organizador
+                cursor.execute(
+                    """
+                    INSERT INTO mensajes_organizador (organizador_id, remitente_id, evento_id, asunto, mensaje, leido)
+                    VALUES (%s, NULL, %s, 'RECORDATORIO', %s, 0)
+                    """,
+                    (usuario_id, evento_id, mensaje)
+                )
+                
+                # Marcar el recordatorio como enviado
+                cursor.execute("UPDATE recordatorios_eventos SET enviado = 1 WHERE id = %s", (recordatorio_id,))
+                
+                db.connection.commit()
+                enviados += 1
+                print(f"[INFO] Recordatorio enviado: usuario={usuario_id}, evento={evento_id}, tipo={tipo}")
+            except Exception as ex:
+                db.connection.rollback()
+                print(f"[ERROR] Error procesando recordatorio {recordatorio_id}: {ex}")
+        
+        print(f"[INFO] Se procesaron {enviados} recordatorios")
+        return enviados
+    except Exception as ex:
+        print(f"[ERROR] Error en process_pending_event_reminders: {ex}")
+        return 0
+
+
 def ensure_followers_table():
     try:
         with app.app_context():
@@ -336,6 +719,30 @@ def ensure_replies_table():
     except Exception as ex:
         print(f"[WARN] No se pudo asegurar la tabla de respuestas: {ex}")
 
+def ensure_chat_deletions_table():
+    try:
+        with app.app_context():
+            cursor = db.connection.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS chats_eliminados (
+                  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                  usuario_id INT UNSIGNED NOT NULL,
+                  contacto_id INT UNSIGNED NOT NULL,
+                  eliminado_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (id),
+                  UNIQUE KEY unique_chat_usuario (usuario_id, contacto_id),
+                  KEY idx_contacto (contacto_id),
+                  FOREIGN KEY (usuario_id) REFERENCES `user`(id) ON DELETE CASCADE,
+                  FOREIGN KEY (contacto_id) REFERENCES `user`(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                """
+            )
+            db.connection.commit()
+            print("[INFO] Tabla de eliminaciones de chats creada/verificada.")
+    except Exception as ex:
+        print(f"[WARN] No se pudo asegurar la tabla de eliminaciones de chats: {ex}")
+
 def add_profile_photo_column():
     try:
         with app.app_context():
@@ -348,11 +755,44 @@ def add_profile_photo_column():
     except Exception as ex:
         print(f"[WARN] No se pudo agregar columna foto_perfil: {ex}")
 
+def ensure_event_reminders_table():
+    """Crea la tabla para almacenar recordatorios programados de eventos"""
+    try:
+        with app.app_context():
+            cursor = db.connection.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS recordatorios_eventos (
+                  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                  usuario_id INT UNSIGNED NOT NULL,
+                  evento_id INT UNSIGNED NOT NULL,
+                  tipo VARCHAR(50) NOT NULL,
+                  mensaje TEXT NOT NULL,
+                  fecha_programada DATETIME NOT NULL,
+                  enviado TINYINT(1) DEFAULT 0,
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (id),
+                  KEY idx_usuario (usuario_id),
+                  KEY idx_evento (evento_id),
+                  KEY idx_fecha_programada (fecha_programada),
+                  KEY idx_enviado (enviado),
+                  FOREIGN KEY (usuario_id) REFERENCES `user`(id) ON DELETE CASCADE,
+                  FOREIGN KEY (evento_id) REFERENCES event(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                """
+            )
+            db.connection.commit()
+            print("[INFO] Tabla recordatorios_eventos creada/verificada.")
+    except Exception as ex:
+        print(f"[WARN] No se pudo asegurar la tabla de recordatorios: {ex}")
+
 ensure_organizer_requests_table()
 ensure_notifications_table()
 ensure_followers_table()
 ensure_replies_table()
+ensure_chat_deletions_table()
 add_profile_photo_column()
+ensure_event_reminders_table()
 csrf = CSRFProtect(app)
 login_manager_app = LoginManager(app)
 login_manager_app.login_view = 'login'
@@ -473,7 +913,7 @@ def get_events_created_by_user(db_connection, user_id):
     try:
         cursor = db_connection.connection.cursor()
         cursor.execute(
-            "SELECT id, titulo, fecha, hora, descripcion, lugar, capacidad_maxima, finalizado, categoria FROM event WHERE created_by = %s ORDER BY fecha DESC, hora DESC, id DESC",
+            "SELECT id, titulo, fecha, hora, descripcion, lugar, capacidad_maxima, finalizado, categoria, imagen FROM event WHERE created_by = %s ORDER BY fecha DESC, hora DESC, id DESC",
             (user_id,)
         )
         rows = cursor.fetchall()
@@ -494,6 +934,7 @@ def get_events_created_by_user(db_connection, user_id):
                 'capacidad_maxima': int(r[6]) if r[6] is not None else 0,
                 'finalizado': bool(r[7]),
                 'categoria': r[8] or 'General',
+                'imagen': r[9],
                 'inscritos_count': inscritos_count
             })
         return events
@@ -596,9 +1037,9 @@ def get_user_registrations(db, dni_usuario):
         cursor = db.connection.cursor()
         cursor.execute(
             """
-            SELECT r.id, r.evento_id, r.dni_usuario, r.nombre_usuario, r.qr_code, r.asistido, e.titulo, e.fecha, e.hora, e.descripcion, e.lugar, e.categoria
+            SELECT r.id, r.evento_id, r.dni_usuario, r.nombre_usuario, r.qr_code, r.asistido, e.titulo, e.fecha, e.hora, e.descripcion, e.lugar, e.categoria, e.imagen
             FROM registrados r
-            LEFT JOIN event e ON e.id = r.evento_id
+            JOIN event e ON e.id = r.evento_id
             WHERE r.dni_usuario = %s
             ORDER BY e.fecha, e.hora
             """,
@@ -607,20 +1048,40 @@ def get_user_registrations(db, dni_usuario):
         rows = cursor.fetchall()
         regs = []
         for r in rows:
-            hora = r[8].strftime('%H:%M') if hasattr(r[8], 'strftime') else str(r[8] or '00:00')
+            qr_path = r[4]
+            qr_filename = os.path.basename(str(qr_path or '').replace('\\', '/'))
+            qr_exists = bool(qr_filename) and os.path.exists(os.path.join(app.static_folder, 'qr', qr_filename))
+            if not qr_exists:
+                qr_path = generate_qr_code(r[1], r[2], r[3], r[0])
+                if qr_path:
+                    cursor.execute(
+                        "UPDATE registrados SET qr_code = %s WHERE id = %s",
+                        (qr_path, r[0])
+                    )
+                    db.connection.commit()
+            if hasattr(r[8], 'strftime'):
+                hora = r[8].strftime('%H:%M')
+            elif isinstance(r[8], timedelta):
+                total_seconds = int(r[8].total_seconds())
+                horas, resto = divmod(total_seconds, 3600)
+                minutos = resto // 60
+                hora = f'{horas:02d}:{minutos:02d}'
+            else:
+                hora = str(r[8] or '00:00')[:5].zfill(5)
             regs.append({
                 'registro_id': r[0],
                 'evento_id': r[1],
                 'dni': r[2],
                 'nombre': r[3],
-                'qr_code': r[4],
+                'qr_code': qr_path,
                 'asistido': bool(r[5]),
                 'titulo': r[6],
                 'fecha': r[7].strftime('%Y-%m-%d') if hasattr(r[7], 'strftime') else str(r[7]),
                 'hora': hora,
                 'descripcion': r[9],
                 'lugar': r[10],
-                'categoria': r[11] or 'General'
+                'categoria': r[11] or 'General',
+                'imagen': r[12]
             })
         return regs
     except Exception as ex:
@@ -755,8 +1216,8 @@ def login():
         password = request.form.get('password') or request.form.get('contraseña')
         remember_me = request.form.get('remember_me') == '1'
 
-        if email == 'admin' and password == 'admin':
-            admin_user = User(0, 'admin', 'admin', None, '', '', 'admin')
+        if email == 'admin1' and password == 'admin1':
+            admin_user = User(0, 'admin1', 'admin1', None, '', '', 'admin')
             login_user(admin_user)
             response = redirect(url_for('home'))
             if remember_me:
@@ -796,16 +1257,18 @@ def register():
         password = request.form['password']
         telefono = request.form['telefono'].strip()
         email = request.form['email'].strip()
-        dni = request.form['dni'].strip()
+        dni = request.form.get('dni', '').strip()
         rol = request.form.get('rol', 'estudiante').strip().lower()
 
         if rol not in ('estudiante', 'organizador'):
             flash("Selecciona si deseas registrarte como usuario u organizador.")
             return render_template('auth/register.html')
 
-        if not dni.isdigit() or len(dni) > 8:
+        if rol == 'estudiante' and (not dni.isdigit() or len(dni) > 8):
             flash("El DNI debe contener solo números y como máximo 8 dígitos.")
             return render_template('auth/register.html')
+        if rol == 'organizador':
+            dni = f"ORG-{uuid.uuid4().hex[:12].upper()}"
         if len(telefono) > 10 or not re.fullmatch(r'[0-9+\-() ]+', telefono):
             flash("El Teléfono sólo puede contener números y los signos + - ( ) y espacios, con un máximo de 10 caracteres.")
             return render_template('auth/register.html')
@@ -822,7 +1285,7 @@ def register():
             user_exists = cursor.fetchone()
 
             if user_exists:
-                flash("Ya existe una cuenta con ese DNI o correo electrónico.")
+                flash("Ya existe una cuenta con ese nombre de usuario, DNI o correo electrónico.")
                 return render_template('auth/register.html')
 
             cursor.execute(
@@ -852,21 +1315,25 @@ def register():
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        dni = request.form.get('dni', '').strip()
-        if not dni:
-            flash('Ingrese el DNI asociado.')
-            return render_template('auth/forgot.html')
-
-        if not dni.isdigit():
-            flash('El DNI debe contener solo números.')
+        identifier = request.form.get('identifier', request.form.get('dni', '')).strip()
+        if not identifier:
+            flash('Ingrese su correo, usuario o nombre de institución.')
             return render_template('auth/forgot.html')
 
         try:
             cursor = db.connection.cursor()
-            cursor.execute("SELECT id, email FROM `user` WHERE dni = %s LIMIT 1", (dni,))
+            cursor.execute(
+                """
+                SELECT id, email
+                FROM `user`
+                WHERE dni = %s OR username = %s OR LOWER(email) = LOWER(%s)
+                LIMIT 1
+                """,
+                (identifier, identifier, identifier)
+            )
             user = cursor.fetchone()
             if not user:
-                flash('No se encontró una cuenta asociada al DNI ingresado.')
+                flash('No se encontró una cuenta asociada a esos datos.')
                 return render_template('auth/forgot.html')
 
             user_id, user_email = user[0], user[1]
@@ -874,7 +1341,7 @@ def forgot_password():
             expires = (datetime.utcnow() + timedelta(minutes=15)).isoformat()
             session[f'pw_reset_{user_id}'] = {'code': code, 'expires': expires}
             session['reset_request_user_id'] = user_id
-            session['reset_request_identifier'] = dni
+            session['reset_request_identifier'] = identifier
             session['reset_request_email'] = user_email
 
             if user_email:
@@ -1142,6 +1609,38 @@ def gestionar_organizadores():
                         else 'Solicitud rechazada. El usuario conservará los privilegios de usuario.',
                         'success'
                     )
+            elif user_id and action == 'eliminar':
+                target_user_id = int(user_id)
+                if target_user_id == current_user.id:
+                    raise ValueError('No puedes eliminar tu propia cuenta de administrador.')
+
+                cursor.execute("SELECT rol FROM `user` WHERE id = %s FOR UPDATE", (target_user_id,))
+                target_user = cursor.fetchone()
+                if not target_user:
+                    raise ValueError('El usuario no existe.')
+                if target_user[0] == 'admin':
+                    raise ValueError('No se puede eliminar una cuenta de administrador.')
+
+                cursor.execute(
+                    """
+                    DELETE FROM respuestas_organizador
+                    WHERE organizador_id = %s OR destinatario_id = %s OR autor_id = %s
+                       OR mensaje_id IN (
+                           SELECT id FROM mensajes_organizador
+                           WHERE organizador_id = %s OR remitente_id = %s
+                       )
+                    """,
+                    (target_user_id, target_user_id, target_user_id, target_user_id, target_user_id)
+                )
+                cursor.execute("DELETE FROM mensajes_organizador WHERE organizador_id = %s OR remitente_id = %s", (target_user_id, target_user_id))
+                cursor.execute("DELETE FROM seguidores WHERE seguidor_id = %s OR seguido_id = %s", (target_user_id, target_user_id))
+                cursor.execute("DELETE FROM chats_eliminados WHERE usuario_id = %s OR contacto_id = %s", (target_user_id, target_user_id))
+                cursor.execute("DELETE FROM organizer_role_requests WHERE user_id = %s OR reviewed_by = %s", (target_user_id, target_user_id))
+                cursor.execute("DELETE FROM registrados WHERE evento_id IN (SELECT id FROM event WHERE created_by = %s)", (target_user_id,))
+                cursor.execute("DELETE FROM event WHERE created_by = %s", (target_user_id,))
+                cursor.execute("DELETE FROM `user` WHERE id = %s", (target_user_id,))
+                db.connection.commit()
+                flash('Cuenta eliminada correctamente.', 'success')
             elif user_id and nuevo_rol in ('organizador', 'estudiante'):
                 ModelUser.update_rol(db, user_id, nuevo_rol)
                 flash('Rol actualizado correctamente.', 'success')
@@ -1153,9 +1652,10 @@ def gestionar_organizadores():
 
         return redirect(url_for('gestionar_organizadores'))
 
-    usuarios = ModelUser.get_all_users(db)
+    dni_busqueda = request.args.get('dni', '').strip()
+    usuarios = ModelUser.get_all_users(db, dni_busqueda)
     solicitudes = get_pending_organizer_requests()
-    return render_template('admin_organizadores.html', usuarios=usuarios, solicitudes=solicitudes)
+    return render_template('admin_organizadores.html', usuarios=usuarios, solicitudes=solicitudes, dni_busqueda=dni_busqueda)
 
 @app.route('/admin/borrar-historial', methods=['POST'])
 @login_required
@@ -1309,12 +1809,18 @@ def editar_evento(evento_id):
             return render_template('editar_evento.html', evento=evento)
 
         try:
+            fecha_anterior = str(evento.get('fecha', '')).strip()
+            hora_anterior = str(evento.get('hora', '')).strip()
             cursor = db.connection.cursor()
             cursor.execute(
                 "UPDATE event SET titulo = %s, fecha = %s, hora = %s, descripcion = %s, lugar = %s, capacidad_maxima = %s, categoria = %s, latitud = %s, longitud = %s, imagen = %s WHERE id = %s",
                 (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen, evento_id)
             )
             db.connection.commit()
+
+            if fecha_anterior and hora_anterior and (fecha_anterior != fecha or hora_anterior != hora):
+                notify_event_change_to_registered_users(evento_id, titulo, fecha_anterior, hora_anterior, fecha, hora, current_user.id)
+
             flash("Evento actualizado exitosamente.", "success")
             return redirect(url_for('ver_eventos'))
         except Exception as ex:
@@ -1348,6 +1854,7 @@ def eliminar_evento(evento_id):
     
     try:
         cursor = db.connection.cursor()
+        cursor.execute("DELETE FROM registrados WHERE evento_id = %s", (evento_id,))
         cursor.execute("DELETE FROM event WHERE id = %s", (evento_id,))
         db.connection.commit()
         flash("Evento eliminado exitosamente.", "success")
@@ -1363,6 +1870,7 @@ def eliminar_evento(evento_id):
 @app.route('/home')
 @login_required
 def home():
+    ensure_system_event_reminders(current_user.id)
     usuario_display = getattr(current_user, 'username', None) or getattr(current_user, 'email', '')
     solicitud_estado = None
     solicitudes_pendientes = 0
@@ -1376,13 +1884,18 @@ def home():
         notificaciones_sin_leer = get_unread_notifications_count(current_user.id)
     elif getattr(current_user, 'rol', '') == 'organizador':
         notificaciones_sin_leer = get_unread_notifications_count(current_user.id)
-    
+
+    notificaciones_recientes = get_recent_user_notifications(current_user.id, 6)
+    cambios_evento_sin_leer = get_unread_event_changes_count(current_user.id)
+
     return render_template(
         'menu.html',
         usuario=usuario_display,
         solicitud_estado=solicitud_estado,
         solicitudes_pendientes=solicitudes_pendientes,
-        notificaciones_sin_leer=notificaciones_sin_leer
+        notificaciones_sin_leer=notificaciones_sin_leer,
+        notificaciones_recientes=notificaciones_recientes,
+        cambios_evento_sin_leer=cambios_evento_sin_leer
     )
 
 @app.route('/eventos')
@@ -1504,7 +2017,7 @@ def registrar_evento(evento_id):
 
         try:
             cursor = db.connection.cursor()
-            cursor.execute("SELECT capacidad_maxima, finalizado FROM event WHERE id = %s LIMIT 1", (evento_id,))
+            cursor.execute("SELECT capacidad_maxima, finalizado, titulo, fecha, hora FROM event WHERE id = %s LIMIT 1", (evento_id,))
             evento = cursor.fetchone()
             if not evento:
                 flash('Evento no encontrado.', 'error')
@@ -1512,6 +2025,10 @@ def registrar_evento(evento_id):
 
             capacidad_maxima = int(evento[0]) if evento[0] is not None else 0
             finalizado = bool(evento[1])
+            evento_titulo = evento[2]
+            evento_fecha = evento[3]
+            evento_hora = evento[4]
+            
             if finalizado:
                 flash('Este evento ya finalizó y no acepta más inscripciones.', 'error')
                 return redirect(url_for('detalle_evento', evento_id=evento_id))
@@ -1530,6 +2047,19 @@ def registrar_evento(evento_id):
             cursor.execute(
                 "INSERT INTO registrados (evento_id, dni_usuario, nombre_usuario) VALUES (%s, %s, %s)",
                 (evento_id, dni, username)
+            )
+            cursor.execute(
+                """
+                INSERT INTO mensajes_organizador
+                    (organizador_id, remitente_id, evento_id, asunto, mensaje, leido)
+                VALUES (%s, NULL, %s, %s, %s, 0)
+                """,
+                (
+                    current_user.id,
+                    evento_id,
+                    'INSCRIPCION',
+                    f'Te has anotado correctamente al evento {evento_titulo}.',
+                )
             )
             db.connection.commit()
 
@@ -2048,12 +2578,19 @@ def soporte():
 
 @app.route('/enviar-ticket', methods=['POST'])
 def enviar_ticket():
-    nombre_usuario = request.form.get('nombre')
-    legajo_usuario = request.form.get('legajo')  
-    email_usuario = request.form.get('email')
+    nombre_usuario = request.form.get('nombre', '').strip()
+    legajo_usuario = request.form.get('legajo', '').strip()
+    email_usuario = request.form.get('email', '').strip()
     prioridad = request.form.get('prioridad')
     categoria = request.form.get('categoria')
-    mensaje = request.form.get('descripcion')
+    mensaje = request.form.get('descripcion', '').strip()
+
+    if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+", nombre_usuario):
+        flash('El nombre solo puede contener letras, espacios, apóstrofes y guiones.', 'error')
+        return redirect(url_for('soporte'))
+    if not re.fullmatch(r'\d{1,8}', legajo_usuario):
+        flash('El Legajo o DNI debe contener solo números y hasta 8 dígitos.', 'error')
+        return redirect(url_for('soporte'))
     
     ticket_id = int(time.time())
 
@@ -2103,23 +2640,11 @@ UTN Facultad Regional San Francisco
         server.send_message(msg)
         server.quit()
 
-        return f"""
-        <div style="font-family:Arial; text-align:center; margin-top:50px;">
-            <h2 style="color:green;"> Hola, recibimos tu ticket  #{ticket_id}. Nuestro equipo lo revisará a la brevedad</h2>
-            <p>Guardar el número de ticket por favor.</p>
-            <a href="/">Volver al formulario</a>
-        </div>
-        """
+        return render_template('ticket_enviado.html', ticket_id=ticket_id)
 
     except Exception as e:
         print("Error:", e)
-        return f"""
-        <div style="font-family:Arial; text-align:center; margin-top:50px;">
-            <h2 style="color:red;">Error al enviar el ticket</h2>
-            <p>{e}</p>
-            <a href="/">Volver</a>
-        </div>
-        """
+        return render_template('ticket_error.html', error=e), 500
 
 # ============ RUTAS DE SEGUIMIENTO Y NOTIFICACIONES ============
 
@@ -2212,23 +2737,72 @@ def get_message_replies(mensaje_id):
 @login_required
 def mis_notificaciones():
     """Muestra mensajes recibidos por organizadores o respuestas del organizador al remitente."""
+    ensure_system_event_reminders(current_user.id)
     es_organizador = getattr(current_user, 'rol', '') in ('admin', 'organizador')
-    
+    chat_abierto_id = request.args.get('chat', type=int)
+
     try:
         cursor = db.connection.cursor()
         user_id = getattr(current_user, 'id', None)
+        if es_organizador and chat_abierto_id:
+            cursor.execute(
+                """
+                UPDATE mensajes_organizador
+                SET leido = 1
+                WHERE organizador_id = %s AND remitente_id = %s
+                """,
+                (user_id, chat_abierto_id)
+            )
+            cursor.execute(
+                """
+                UPDATE respuestas_organizador r
+                INNER JOIN mensajes_organizador m ON m.id = r.mensaje_id
+                SET r.leido_destinatario = 1
+                WHERE m.organizador_id = %s AND m.remitente_id = %s
+                  AND r.destinatario_id = %s
+                """,
+                (user_id, chat_abierto_id, user_id)
+            )
+            db.connection.commit()
         if es_organizador:
             cursor.execute(
                 """
-                SELECT m.id, m.remitente_id, m.evento_id, m.asunto, m.mensaje, m.created_at, m.leido,
-                       u.username AS remitente_nombre, u.foto_perfil AS remitente_foto, e.titulo AS evento_titulo
+              SELECT m.id, m.remitente_id, m.evento_id, m.asunto, m.mensaje, m.created_at, m.leido,
+                  CASE
+                    WHEN m.remitente_id IS NULL THEN 'Sistema'
+                    WHEN m.remitente_id = %s THEN destinatario.username
+                    ELSE remitente.username
+                  END AS remitente_nombre,
+                  CASE
+                    WHEN m.remitente_id IS NULL THEN NULL
+                    WHEN m.remitente_id = %s THEN destinatario.foto_perfil
+                    ELSE remitente.foto_perfil
+                  END AS remitente_foto,
+                  e.titulo AS evento_titulo
                 FROM mensajes_organizador m
-                LEFT JOIN `user` u ON u.id = m.remitente_id
+              LEFT JOIN `user` remitente ON remitente.id = m.remitente_id
+              LEFT JOIN `user` destinatario ON destinatario.id = m.organizador_id
                 LEFT JOIN event e ON e.id = m.evento_id
-                WHERE m.organizador_id = %s
+                            LEFT JOIN chats_eliminados ce
+                                ON ce.usuario_id = %s
+                             AND ce.contacto_id = CASE
+                                        WHEN m.remitente_id = %s THEN m.organizador_id
+                                        ELSE m.remitente_id
+                                    END
+                             AND m.created_at <= ce.eliminado_at
+                            WHERE (m.organizador_id = %s OR m.remitente_id = %s)
+                                AND (
+                                    ce.id IS NULL
+                                    OR EXISTS (
+                                        SELECT 1
+                                        FROM respuestas_organizador r
+                                        WHERE r.mensaje_id = m.id
+                                          AND r.created_at > ce.eliminado_at
+                                    )
+                                )
                 ORDER BY m.created_at DESC
                 """,
-                (user_id,)
+                            (user_id, user_id, user_id, user_id, user_id, user_id)
             )
         else:
             cursor.execute(
@@ -2239,21 +2813,41 @@ def mis_notificaciones():
                 LEFT JOIN `user` u ON u.id = m.remitente_id
                 LEFT JOIN event e ON e.id = m.evento_id
                 WHERE m.remitente_id = %s
-                ORDER BY m.created_at DESC
+
+                UNION ALL
+
+                SELECT m.id, m.remitente_id, m.evento_id, m.asunto, m.mensaje, m.created_at, m.leido,
+                       'Sistema' AS remitente_nombre, NULL AS remitente_foto, e.titulo AS evento_titulo
+                FROM mensajes_organizador m
+                LEFT JOIN event e ON e.id = m.evento_id
+                WHERE m.organizador_id = %s AND m.remitente_id IS NULL
+                ORDER BY created_at DESC
                 """,
-                (user_id,)
+                (user_id, user_id)
             )
         notificaciones = cursor.fetchall()
         
         if es_organizador:
             cursor.execute(
-                "SELECT COUNT(*) FROM mensajes_organizador WHERE organizador_id = %s AND leido = 0",
-                (user_id,)
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM mensajes_organizador
+                     WHERE organizador_id = %s AND leido = 0)
+                    +
+                    (SELECT COUNT(*) FROM respuestas_organizador
+                     WHERE destinatario_id = %s AND leido_destinatario = 0)
+                """,
+                (user_id, user_id)
             )
         else:
             cursor.execute(
-                "SELECT COUNT(*) FROM respuestas_organizador WHERE destinatario_id = %s AND leido_destinatario = 0",
-                (user_id,)
+                """
+                SELECT 
+                    (SELECT COUNT(*) FROM respuestas_organizador WHERE destinatario_id = %s AND leido_destinatario = 0)
+                    +
+                    (SELECT COUNT(*) FROM mensajes_organizador WHERE organizador_id = %s AND remitente_id IS NULL AND leido = 0)
+                """,
+                (user_id, user_id)
             )
         no_leidas_count = cursor.fetchone()[0]
         
@@ -2261,31 +2855,57 @@ def mis_notificaciones():
         for n in notificaciones:
             mensaje_id = n[0]
             replies = get_message_replies(mensaje_id)
-            
-            notifs.append({
+            created_dt = n[5]
+            remitente_id = n[1]
+            es_mensaje_propio = es_organizador and remitente_id == user_id
+            nombre_contacto = n[7] or 'Usuario anónimo'
+            foto_contacto = n[8]
+            remitente_nombre = 'Vos' if es_mensaje_propio else nombre_contacto
+            if remitente_id is None or remitente_nombre in ('Usuario anónimo', 'Anónimo', 'Usuario anonimo'):
+                remitente_nombre = 'Sistema'
+                remitente_foto = None
+            else:
+                remitente_foto = None if es_mensaje_propio else foto_contacto
+
+            notif = {
                 'id': mensaje_id,
-                'remitente_id': n[1],
+                'remitente_id': remitente_id,
                 'evento_id': n[2],
                 'asunto': n[3],
                 'mensaje': n[4],
-                'created_at': n[5].strftime('%d/%m/%Y %H:%M') if hasattr(n[5], 'strftime') else str(n[5]),
+                'created_at': created_dt.strftime('%d/%m/%Y %H:%M') if hasattr(created_dt, 'strftime') else str(created_dt),
+                'created_sort': created_dt if hasattr(created_dt, 'timestamp') else datetime.now(),
                 'leido': bool(n[6]),
-                'remitente_nombre': n[7] or 'Usuario anónimo',
-                'remitente_foto': n[8],
+                'remitente_nombre': remitente_nombre,
+                'remitente_foto': remitente_foto,
+                'es_propio': es_mensaje_propio,
+                'chat_nombre': nombre_contacto,
+                'chat_foto': foto_contacto,
                 'evento_titulo': n[9] or f'Evento {n[2]}',
                 'respuestas': replies
-            })
+            }
+            notifs.append(notif)
+
+        notifs.sort(key=lambda x: (x['remitente_nombre'] != 'Sistema', -x['created_sort'].timestamp()))
 
         chats = []
         if es_organizador:
             chats_by_user = {}
             for notif in notifs:
-                chat_key = notif['remitente_id'] or 0
+                cursor.execute(
+                    "SELECT organizador_id, remitente_id FROM mensajes_organizador WHERE id = %s",
+                    (notif['id'],)
+                )
+                participantes = cursor.fetchone()
+                chat_key = (
+                    participantes[0] if participantes and participantes[1] == user_id
+                    else notif['remitente_id']
+                ) if notif['remitente_id'] is not None else 'sistema'
                 if chat_key not in chats_by_user:
                     chats_by_user[chat_key] = {
-                        'usuario_id': notif['remitente_id'],
-                        'nombre': notif['remitente_nombre'],
-                        'foto': notif['remitente_foto'],
+                        'usuario_id': chat_key if chat_key != 'sistema' else None,
+                        'nombre': notif['chat_nombre'] if notif['es_propio'] else notif['remitente_nombre'],
+                        'foto': notif['chat_foto'] if notif['es_propio'] else notif['remitente_foto'],
                         'mensajes': []
                     }
                     chats.append(chats_by_user[chat_key])
@@ -2319,10 +2939,69 @@ def marcar_notificacion_leida(notif_id):
     
     return redirect(url_for('mis_notificaciones'))
 
+@app.route('/notificacion/<int:notif_id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_notificacion_sistema(notif_id):
+    """Elimina solo una notificacion automatica del usuario actual."""
+    try:
+        cursor = db.connection.cursor()
+        cursor.execute(
+            """
+            DELETE FROM respuestas_organizador
+            WHERE mensaje_id = %s
+            """,
+            (notif_id,)
+        )
+        cursor.execute(
+            """
+            DELETE FROM mensajes_organizador
+            WHERE id = %s
+              AND organizador_id = %s
+              AND remitente_id IS NULL
+            """,
+            (notif_id, getattr(current_user, 'id', None))
+        )
+        if cursor.rowcount == 0:
+            db.connection.rollback()
+            flash('No se encontro esa notificacion.', 'error')
+        else:
+            db.connection.commit()
+            flash('Notificacion eliminada.', 'success')
+    except Exception as ex:
+        db.connection.rollback()
+        print(f"[ERROR] eliminar_notificacion_sistema: {ex}")
+        flash('No se pudo eliminar la notificacion.', 'error')
+    return redirect(url_for('mis_notificaciones'))
+
+
+@app.route('/notificaciones/cambios-evento/marcar-todas-leidas', methods=['POST'])
+@login_required
+def marcar_todos_los_cambios_evento_leidos():
+    """Marca como leídos todos los cambios de eventos del usuario actual."""
+    try:
+        cursor = db.connection.cursor()
+        cursor.execute(
+            """
+            UPDATE mensajes_organizador
+            SET leido = 1
+            WHERE organizador_id = %s
+              AND remitente_id IS NULL
+              AND asunto = 'Cambio de evento'
+              AND leido = 0
+            """,
+            (current_user.id,)
+        )
+        db.connection.commit()
+    except Exception as ex:
+        db.connection.rollback()
+        print(f"[ERROR] marcar_todos_los_cambios_evento_leidos: {ex}")
+    return redirect(url_for('home'))
+
+
 @app.route('/chat/<int:usuario_id>/eliminar', methods=['POST'])
 @login_required
 def eliminar_chat(usuario_id):
-    """Elimina todos los mensajes y respuestas de un estudiante con el organizador."""
+    """Oculta el chat solo para el organizador que lo elimina."""
     if getattr(current_user, 'rol', '') not in ('admin', 'organizador'):
         flash('No tienes permiso para eliminar chats.', 'error')
         return redirect(url_for('home'))
@@ -2330,20 +3009,59 @@ def eliminar_chat(usuario_id):
     try:
         cursor = db.connection.cursor()
         cursor.execute(
-            "SELECT id FROM mensajes_organizador WHERE organizador_id = %s AND remitente_id = %s",
+            """
+            SELECT id
+            FROM mensajes_organizador
+            WHERE (organizador_id = %s AND remitente_id = %s)
+               OR (organizador_id = %s AND remitente_id = %s)
+            LIMIT 1
+            """,
+            (current_user.id, usuario_id, usuario_id, current_user.id)
+        )
+        if cursor.fetchone() is None:
+            flash('No se encontró ese chat.', 'error')
+            return redirect(url_for('mis_notificaciones'))
+
+        cursor.execute(
+            """
+            INSERT INTO chats_eliminados (usuario_id, contacto_id, eliminado_at)
+            VALUES (%s, %s, NOW())
+            ON DUPLICATE KEY UPDATE eliminado_at = NOW()
+            """,
             (current_user.id, usuario_id)
         )
-        mensaje_ids = [row[0] for row in cursor.fetchall()]
-        if mensaje_ids:
-            placeholders = ','.join(['%s'] * len(mensaje_ids))
-            cursor.execute(f"DELETE FROM respuestas_organizador WHERE mensaje_id IN ({placeholders})", tuple(mensaje_ids))
-            cursor.execute(f"DELETE FROM mensajes_organizador WHERE id IN ({placeholders})", tuple(mensaje_ids))
         db.connection.commit()
-        flash('Chat eliminado correctamente.', 'success')
+        flash('Chat eliminado para vos. El receptor conserva la conversación.', 'success')
     except Exception as ex:
         db.connection.rollback()
         print(f"[ERROR] eliminar_chat: {ex}")
         flash('No se pudo eliminar el chat.', 'error')
+    return redirect(url_for('mis_notificaciones'))
+
+@app.route('/notificaciones/sistema/eliminar', methods=['POST'])
+@login_required
+def eliminar_notificaciones_sistema():
+    """Elimina las notificaciones automáticas del sistema del usuario actual."""
+    if getattr(current_user, 'rol', '') not in ('admin', 'organizador'):
+        flash('No tienes permiso para eliminar este chat.', 'error')
+        return redirect(url_for('home'))
+
+    try:
+        cursor = db.connection.cursor()
+        cursor.execute(
+            "DELETE FROM mensajes_organizador WHERE organizador_id = %s AND remitente_id IS NULL",
+            (current_user.id,)
+        )
+        cursor.execute(
+            "DELETE FROM recordatorios_eventos WHERE usuario_id = %s",
+            (current_user.id,)
+        )
+        db.connection.commit()
+        flash('Chat del sistema eliminado.', 'success')
+    except Exception as ex:
+        db.connection.rollback()
+        print(f"[ERROR] eliminar_notificaciones_sistema: {ex}")
+        flash('No se pudo eliminar el chat del sistema.', 'error')
     return redirect(url_for('mis_notificaciones'))
 
 @app.route('/chat/<int:usuario_id>/marcar-leido', methods=['POST'])
@@ -2377,7 +3095,7 @@ def marcar_chat_leido(usuario_id):
         db.connection.rollback()
         print(f"[ERROR] marcar_chat_leido: {ex}")
         flash('No se pudo marcar el chat como leído.', 'error')
-    return redirect(url_for('mis_notificaciones'))
+    return redirect(url_for('mis_notificaciones', chat=usuario_id))
 
 @app.route('/respuesta/<int:respuesta_id>/marcar-leida', methods=['POST'])
 @login_required
@@ -2525,12 +3243,17 @@ def get_unread_notifications_count(user_id):
         return 0
 
 def get_unread_responses_count(user_id):
-    """Obtiene el número de respuestas dirigidas al usuario."""
+    """Obtiene respuestas y recordatorios del sistema dirigidos al usuario."""
     try:
         cursor = db.connection.cursor()
         cursor.execute(
-            "SELECT COUNT(*) FROM respuestas_organizador WHERE destinatario_id = %s AND leido_destinatario = 0",
-            (user_id,)
+            """
+            SELECT 
+                (SELECT COUNT(*) FROM respuestas_organizador WHERE destinatario_id = %s AND leido_destinatario = 0)
+                +
+                (SELECT COUNT(*) FROM mensajes_organizador WHERE organizador_id = %s AND remitente_id IS NULL AND leido = 0)
+            """,
+            (user_id, user_id)
         )
         return cursor.fetchone()[0]
     except Exception:
@@ -2655,6 +3378,31 @@ def subir_foto_perfil():
         flash('Error al subir la foto de perfil.', 'error')
     
     return redirect(request.referrer or url_for('home'))
+
+@app.route('/api/procesar-recordatorios', methods=['GET', 'POST'])
+def procesar_recordatorios():
+    """Procesa los recordatorios pendientes de envío.
+    Esta ruta puede ser llamada por un script externo o un scheduler.
+    Sin requerimiento de login para facilitar llamadas automáticas.
+    """
+    try:
+        # Verificar si hay un token de autorización (opcional, para mayor seguridad)
+        auth_token = request.args.get('token') or request.form.get('token')
+        # Puedes agregar validación de token aquí si lo deseas
+        
+        cantidad_procesados = process_pending_event_reminders()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Se procesaron {cantidad_procesados} recordatorios pendientes',
+            'records_processed': cantidad_procesados
+        })
+    except Exception as ex:
+        print(f"[ERROR] procesar_recordatorios: {ex}")
+        return jsonify({
+            'success': False,
+            'message': str(ex)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

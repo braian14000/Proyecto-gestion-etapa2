@@ -1,0 +1,30 @@
+{
+  "evento": {
+    "id": 1,
+    "titulo": "Evento prueba",
+    "fecha": "2026-09-01",
+    "hora": "1:25:00",
+    "descripcion": "batalla",
+    "lugar": "utn",
+    "capacidad_maxima": 10,
+    "finalizado": false,
+    "categoria": "Música",
+    "created_by": 1,
+    "created_at": "2026-09-01 11:24:15"
+  },
+  "inscriptos": [
+    {
+      "nombre": "santiago",
+      "gmail": "santiriedel1@gmail.com",
+      "confirmado_at": "2026-09-01 12:12:30",
+      "metodo_confirmacion": "DNI"
+    },
+    {
+      "nombre": "leonel",
+      "gmail": "lerossi@escuelasproa.edu.ar",
+      "confirmado_at": null,
+      "metodo_confirmacion": null
+    }
+  ],
+  "guardado_en": "2026-09-03T10:42:55"
+}

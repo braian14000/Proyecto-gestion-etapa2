@@ -2,49 +2,123 @@
 
 {% block title %}Eventos del organizador{% endblock %}
 
+{% block customCSS %}
+<style>
+  .organizador-page { min-height: 100vh; background: #eef6ff; color: #123d78; }
+  .organizador-header { display: none; min-height: 105px; background: #092b70; color: #fff; }
+  .organizador-header-inner { max-width: 1120px; min-height: 105px; margin: 0 auto; padding: 18px 58px; display: flex; align-items: center; justify-content: space-between; }
+  .organizador-brand { display: flex; align-items: center; gap: 22px; }
+  .organizador-brand img { width: 390px; max-width: 58vw; max-height: 70px; object-fit: contain; filter: brightness(0) invert(1); }
+  .organizador-profile-link { display: inline-flex; padding: 3px; border: 2px solid #1764ff; border-radius: 50%; background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .2); transition: transform .2s ease, box-shadow .2s ease; }
+  .organizador-profile-link:hover { transform: scale(1.06); box-shadow: 0 6px 16px rgba(23, 100, 255, .35); }
+  .organizador-avatar { display: block; width: 58px; height: 58px; border-radius: 50%; object-fit: cover; }
+  .organizador-avatar-fallback { display: grid; place-items: center; color: #fff; background: #1764ff; font-size: 1.35rem; font-weight: 800; }
+  .organizador-content { max-width: 1035px; margin: 0 auto; padding: 46px 30px 90px; }
+  .organizador-heading { display: flex; justify-content: space-between; align-items: start; margin-bottom: 34px; }
+  .organizador-heading h1 { margin: 0 0 12px; color: #123d78; font-size: 1.75rem; font-weight: 800; }
+  .organizador-heading p { margin: 0; color: #294b7e; font-size: 1.05rem; }
+  .organizador-heading .btn,
+  .organizador-actions .btn,
+  .organizador-actions button { min-height: 40px; border: 1px solid #1764ff !important; border-radius: 8px !important; color: #06439a !important; background: #fff !important; font-weight: 700; box-shadow: 0 3px 8px rgba(24, 83, 169, .12); }
+  .organizador-heading .btn:hover,
+  .organizador-actions .btn:hover,
+  .organizador-actions button:hover { color: #fff !important; background: #1764ff !important; }
+  .organizador-event-card { display: grid; grid-template-columns: 220px minmax(0, 1fr) 205px; gap: 28px; align-items: center; margin-bottom: 26px; padding: 28px 26px; border-radius: 10px; background: #fff; box-shadow: 0 5px 15px rgba(35, 74, 124, .12); }
+  .organizador-event-image { width: 190px; height: 250px; border-radius: 10px; object-fit: cover; background: linear-gradient(145deg, #164eaa, #092b70); }
+  .organizador-event-fallback { display: grid; place-items: center; color: #fff; font-size: 3rem; font-weight: 800; }
+  .organizador-event-info { min-width: 0; }
+  .organizador-event-info h2 { position: relative; display: inline-block; margin: 0 0 20px; color: #123d78; font-size: 1.65rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+  .organizador-event-info h2::after { content: ''; display: block; width: 52px; height: 4px; margin-top: 8px; border-radius: 4px; background: #1764ff; }
+  .organizador-event-info p { margin: 0 0 12px; color: #55709b; font-size: .98rem; }
+  .organizador-event-info hr { width: 235px; margin: 22px 0; border: 0; border-top: 1px solid #d9e2ef; }
+  .organizador-event-description { max-width: 410px; margin: 2px 0 16px; padding: 12px 15px; border-left: 4px solid #1764ff; border-radius: 0 8px 8px 0; color: #294b7e !important; background: #f1f7ff; line-height: 1.6; overflow-wrap: anywhere; }
+  .organizador-event-description-label { display: block; margin-bottom: 4px; color: #1764ff; font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .organizador-status { display: inline-block; margin: 4px 0 14px; padding: 7px 14px; border-radius: 7px; color: #17703c; background: #e3f7e8; font-weight: 700; }
+  .organizador-status.closed { color: #5e6d82; background: #edf0f4; }
+  .organizador-count { display: inline-block; padding: 7px 13px; border-radius: 7px; color: #0b65c2; background: #e0f0ff; font-weight: 700; }
+  .organizador-actions { display: flex; flex-direction: column; gap: 9px; align-items: stretch; padding-left: 26px; border-left: 1px solid #d9e2ef; }
+  .organizador-actions form { margin: 0; }
+  .organizador-actions button { width: 100%; }
+  .organizador-actions .btn-danger { color: #c0392b !important; border-color: #d7665c !important; }
+  .organizador-actions .btn-danger:hover { color: #fff !important; background: #c0392b !important; }
+  .organizador-empty { padding: 34px; border-radius: 10px; color: #294b7e; background: #fff; text-align: center; box-shadow: 0 5px 15px rgba(35, 74, 124, .12); }
+  @media (max-width: 800px) {
+    .organizador-header-inner { padding: 18px 22px; }
+    .organizador-brand img { width: 255px; }
+    .organizador-avatar { width: 48px; height: 48px; }
+    .organizador-content { padding: 30px 16px 75px; }
+    .organizador-heading { gap: 18px; flex-direction: column; }
+    .organizador-event-card { grid-template-columns: 1fr; gap: 20px; padding: 18px; }
+    .organizador-event-image { width: 100%; height: 190px; }
+    .organizador-actions { padding: 18px 0 0; border-top: 1px solid #d9e2ef; border-left: 0; }
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-  <div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+  <main class="organizador-page">
+    <header class="organizador-header">
+      <div class="organizador-header-inner">
+        <div class="organizador-brand">
+          <span class="calendar-logo" role="img" aria-label="Calendario de eventos"></span>
+        </div>
+        {% if current_user.foto_perfil %}
+          <a class="organizador-profile-link" href="{{ url_for('home', abrir_perfil=1) }}" title="Abrir mi perfil" aria-label="Abrir mi perfil">
+            <img class="organizador-avatar" src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de {{ current_user.username }}">
+          </a>
+        {% else %}
+          <a class="organizador-profile-link" href="{{ url_for('home', abrir_perfil=1) }}" title="Abrir mi perfil" aria-label="Abrir mi perfil">
+            <span class="organizador-avatar organizador-avatar-fallback">{{ current_user.username[0]|upper }}</span>
+          </a>
+        {% endif %}
+      </div>
+    </header>
+    <section class="organizador-content">
+    <div class="organizador-heading">
       <div>
-        <h3>Eventos del organizador</h3>
         <p class="text-muted">Acá podés ver los eventos que creaste y gestionar su contenido.</p>
       </div>
       <a class="btn btn-secondary" href="{{ url_for('home') }}">Ir al menú</a>
     </div>
 
     {% if eventos and eventos|length > 0 %}
-      <div class="list-group">
+      <div class="organizador-events-list">
         {% for evento in eventos %}
-          <div class="list-group-item d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <h5 class="mb-1">{{ evento.titulo }}</h5>
-              <p class="mb-1 text-muted">{{ evento.fecha }} · {{ evento.hora }} · {{ evento.lugar }}</p>
-              <p class="mb-1 text-muted">Capacidad máxima: {{ evento.capacidad_maxima }}</p>
+          <article class="organizador-event-card">
+            {% if evento.imagen %}
+              <img class="organizador-event-image" src="{{ url_for('static', filename=evento.imagen) }}" alt="Imagen de {{ evento.titulo }}">
+            {% else %}
+              <div class="organizador-event-image organizador-event-fallback" aria-label="Evento sin imagen">{{ loop.index }}</div>
+            {% endif %}
+            <div class="organizador-event-info">
+              <h2>{{ evento.titulo }}</h2>
+              <p> &nbsp; {{ evento.fecha }}  {{ evento.hora }} · {{ evento.lugar }}</p>
+              <p> &nbsp; Capacidad máxima: {{ evento.capacidad_maxima }}</p>
+              <hr>
               {% if evento.finalizado %}
-                <span class="badge bg-success">Finalizado</span>
+                <span class="organizador-status closed">Finalizado</span>
               {% else %}
-                <span class="badge bg-primary">Abierto</span>
+                <span class="organizador-status">&nbsp; Abierto</span>
               {% endif %}
               {% if evento.descripcion %}
-                <div class="mt-2 text-muted" style="display:block; width:100%; max-width: 420px; word-break: break-word; line-height: 1.5;">
+                <div class="organizador-event-description">
+                  <span class="organizador-event-description-label">Descripción</span>
                   {{ evento.descripcion }}
                 </div>
               {% endif %}
-              <div class="mt-2">
-                <span class="badge bg-info text-dark">{{ evento.inscritos_count }} anotados</span>
-              </div>
+              <div class="organizador-count"> &nbsp; {{ evento.inscritos_count }} anotados</div>
             </div>
-            <div class="d-flex flex-column gap-2 align-items-end">
+            <div class="organizador-actions">
               <span class="badge bg-primary">Creado por vos</span>
               {% if not evento.finalizado %}
               <a class="btn btn-sm btn-outline-primary" href="{{ url_for('ver_usuarios_evento', evento_id=evento.id) }}">Ver usuarios</a>
               <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('editar_evento', evento_id=evento.id) }}">Editar</a>
               <a class="btn btn-sm btn-warning" href="{{ url_for('validar_qr_evento', evento_id=evento.id) }}">Validar QR</a>
-              <form method="post" action="{{ url_for('finalizar_evento', evento_id=evento.id) }}" style="display:inline-block; margin:0;">
+              <form method="post" action="{{ url_for('finalizar_evento', evento_id=evento.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Finalizar el evento y enviar certificados por Gmail?');">Finalizar</button>
               </form>
-              <form method="post" action="{{ url_for('eliminar_evento', evento_id=evento.id) }}" style="display:inline-block; margin:0;">
+              <form method="post" action="{{ url_for('eliminar_evento', evento_id=evento.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Seguro que querés eliminar este evento?');">Eliminar</button>
               </form>
@@ -52,13 +126,14 @@
               <span class="badge bg-secondary">Evento cerrado</span>
               {% endif %}
             </div>
-          </div>
+          </article>
         {% endfor %}
       </div>
     {% else %}
-      <div class="alert alert-info">
+      <div class="organizador-empty">
         Todavía no creaste eventos para mostrar.
       </div>
     {% endif %}
-  </div>
+    </section>
+  </main>
 {% endblock %}

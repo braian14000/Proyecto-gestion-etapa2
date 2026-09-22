@@ -1,0 +1,30 @@
+{
+  "evento": {
+    "id": 6,
+    "titulo": "12312",
+    "fecha": "2026-09-05",
+    "hora": "12:24:00",
+    "descripcion": "12321",
+    "lugar": "12312",
+    "capacidad_maxima": 12,
+    "finalizado": true,
+    "categoria": "Música",
+    "created_by": 3,
+    "created_at": "2026-09-03 12:21:50"
+  },
+  "inscriptos": [
+    {
+      "nombre": "Braian67",
+      "gmail": "braiangallo035@gmail.com",
+      "confirmado_at": "2026-09-03 12:22:22",
+      "metodo_confirmacion": "DNI"
+    },
+    {
+      "nombre": "santiriedel",
+      "gmail": "santiriedel1@gmail.com",
+      "confirmado_at": "2026-09-03 12:22:18",
+      "metodo_confirmacion": "DNI"
+    }
+  ],
+  "guardado_en": "2026-09-03T12:23:49"
+}

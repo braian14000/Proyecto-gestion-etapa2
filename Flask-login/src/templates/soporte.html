@@ -4,138 +4,51 @@
 
 {% block customCSS %}
 <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f9f9f9;
-            color: #f9fafd;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .contenedor-formulario {
-            background-color: #03034e;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 500px;
-            box-sizing: border-box;
-        }
-
-        h2 {
-            margin-top: 0;
-            color: #ffffff;
-            font-size: 24px;
-            text-align: center;
-        }
-        .subtitulo {
-            color: #f8f9fd;
-            font-size: 14px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .grupo-input {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            font-size: 14px;
-            margin-bottom: 8px;
-            color: #e9eaf3;
-            font-weight: 600;
-        }
-        input[type="text"],
-        input[type="email"],
-        input[type="file"],
-        select,
-        textarea {
-            background-color: #181825;
-            color: #fafafb;
-            border: 2px solid #111111;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 15px;
-            outline: none;
-            transition: border-color 0.3s ease;
-        }
-        input[type="file"] {
-            padding: 8px;
-            cursor: pointer;
-        }
-        input:focus,
-        select:focus,
-        textarea:focus {
-            border-color: #fef9fd;
-        }
-        textarea {
-            resize: vertical;
-        }
-        .btn-enviar {
-            background-color: #ffffff;
-            color: #03034e;
-            border: 2px solid #ffffff;
-            padding: 14px;
-            width: 100%;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .btn-enviar:hover {
-            background-color: #e8e8ff;
-            border-color: #e8e8ff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-enviar:active {
-            transform: translateY(0);
-        }
-
-        .btn-volver {
-            display: inline-block;
-            background-color: #1a1a3e;
-            color: #ffffff;
-            padding: 10px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            border: 2px solid #3a3a6e;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        .btn-volver:hover {
-            background-color: #2a2a5e;
-            border-color: #5a5a8e;
-        }
+        .soporte-page { min-height: calc(100vh - 40px); padding: 20px 16px 70px; color: #19335f; }
+        .contenedor-formulario { width: 100%; max-width: 620px; margin: 0 auto; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 28px rgba(24, 54, 98, .13); }
+        .soporte-header { display: flex; align-items: center; gap: 24px; min-height: 105px; padding: 17px 30px; background: linear-gradient(135deg, #0b4f9e, #1162c5); }
+        .soporte-logo { width: 210px; max-width: 46%; filter: brightness(0) invert(1); }
+        .soporte-header h2 { margin: 0; padding-left: 24px; border-left: 1px solid rgba(255,255,255,.8); color: #fff; font-size: 24px; white-space: nowrap; }
+        .soporte-content { padding: 18px 36px 24px; }
+        .btn-volver { display: block; width: 135px; margin: 0 auto 14px; padding: 8px 14px; border: 1px solid #9ab6df; border-radius: 7px; color: #1760bd; background: #fff; text-align: center; text-decoration: none; font-weight: 700; }
+        .subtitulo { margin: 0 0 22px; color: #284979; text-align: center; font-size: 15px; }
+        .grupo-input { display: flex; flex-direction: column; margin-bottom: 16px; }
+        .grupo-input label { margin-bottom: 7px; color: #173765; font-size: 14px; font-weight: 700; }
+        .grupo-input input[type="text"], .grupo-input input[type="email"], .grupo-input select, .grupo-input textarea { width: 100%; box-sizing: border-box; padding: 10px 13px; border: 1px solid #c6d4e8; border-radius: 7px; outline: none; color: #294b7e; background: #fff; font-size: 15px; }
+        .grupo-input input::placeholder, .grupo-input textarea::placeholder { color: #7185a5; }
+        .grupo-input input:focus, .grupo-input select:focus, .grupo-input textarea:focus { border-color: #2872d5; box-shadow: 0 0 0 3px rgba(40,114,213,.12); }
+        .grupo-input textarea { min-height: 78px; resize: vertical; }
+        .adjunto-label { margin-bottom: 7px; color: #173765; font-size: 14px; font-weight: 700; }
+        .archivo-area { display: block; padding: 18px 15px; border: 1px dashed #a9bfdc; border-radius: 7px; color: #315887; text-align: center; cursor: pointer; }
+        .archivo-area strong { display: block; margin-bottom: 6px; font-size: 14px; }
+        .archivo-area small { color: #7185a5; }
+        .archivo-input { display: none; }
+        .btn-enviar { width: 100%; margin-top: 2px; padding: 13px; border: 0; border-radius: 7px; background: #1161be; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+        .btn-enviar:hover { background: #0b4f9e; }
+        @media (max-width: 600px) { .soporte-header { gap: 16px; padding: 20px; } .soporte-logo { width: 170px; } .soporte-header h2 { padding-left: 16px; font-size: 21px; } .soporte-content { padding: 22px 20px 28px; } }
     </style>
 {% endblock %}
 
 {% block body %}
-<div class="contenedor-formulario">
-        <h2>Centro de Soporte</h2>
+<div class="soporte-page">
+    <div class="contenedor-formulario">
+                <div class="soporte-header">
+                        <img class="soporte-logo" src="{{ url_for('static', filename='img/LogoUTN_Gestion_De_Eventos.png') }}" alt="UTN Gestión de eventos">
+                </div>
+                <div class="soporte-content">
         <a href="{{ url_for('home') }}" class="btn-volver">Volver</a>
         <p class="subtitulo">Reportá un problema en la plataforma de Eventos de la UTN.</p>
 
-        <form action="/enviar-ticket" method="POST" enctype="multipart/form-data">
+        <form action="{{ url_for('enviar_ticket') }}" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="grupo-input">
                 <label for="nombre">Nombre Completo *</label>
-                <input type="text" id="nombre" name="nombre" placeholder="Nombre y Apellido" required>
+                <input type="text" id="nombre" name="nombre" placeholder="Nombre y Apellido" required maxlength="100" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+" title="Solo se permiten letras, espacios, apóstrofes y guiones" oninput="this.value=this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]/g,'')">
             </div>
 
             <div class="grupo-input">
                 <label for="legajo">Legajo o DNI *</label>
-                <input type="text" id="legajo" name="legajo" placeholder="Ej: 49500 o DNI" required>
+                <input type="text" id="legajo" name="legajo" placeholder="Ej: 49500 o DNI" required inputmode="numeric" maxlength="8" pattern="[0-9]{1,8}" title="Ingresá solo números, hasta 8 dígitos" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
             </div>
 
             <div class="grupo-input">
@@ -173,12 +86,18 @@
             </div>
 
             <div class="grupo-input">
-                <label for="adjunto">Adjuntar captura o imagen (Opcional):</label>
-                <input type="file" id="adjunto" name="adjunto" accept="image/*">
+                <label for="adjunto" class="adjunto-label">Adjuntar captura o imagen (Opcional):</label>
+                <label for="adjunto" class="archivo-area">
+                    <strong>Arrastrá y soltá tu archivo aquí<br>o hacé clic para seleccionar</strong>
+                    <small>Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 5MB</small>
+                    <input type="file" id="adjunto" name="adjunto" class="archivo-input" accept="image/jpeg,image/png,image/gif">
+                </label>
             </div>
 
             <button type="submit" class="btn-enviar">Enviar Ticket</button>
         </form>
+        </div>
     </div>
+  </div>
 
 {% endblock %}

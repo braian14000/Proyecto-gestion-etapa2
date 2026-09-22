@@ -1,0 +1,24 @@
+{
+  "evento": {
+    "id": 28,
+    "titulo": "evento prueba",
+    "fecha": "2026-09-17",
+    "hora": "12:22:00",
+    "descripcion": "4477",
+    "lugar": "UTN",
+    "capacidad_maxima": 5,
+    "finalizado": true,
+    "categoria": "Deportes",
+    "created_by": 6,
+    "created_at": "2026-09-17 09:20:28"
+  },
+  "inscriptos": [
+    {
+      "nombre": "alvaro",
+      "gmail": "amrodriguez@escuelasproa.edu.ar",
+      "confirmado_at": "2026-09-17 09:21:58",
+      "metodo_confirmacion": "DNI"
+    }
+  ],
+  "guardado_en": "2026-09-22T09:13:49"
+}

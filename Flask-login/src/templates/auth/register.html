@@ -281,7 +281,7 @@
         <input type="text" id="username" name="username" placeholder="Usuario" aria-label="Usuario" required>
         </div>
 
-        <div class="register-field">
+        <div class="register-field" id="dni-field">
         <span class="field-icon" aria-hidden="true"></span>
         <input type="text" inputmode="numeric" pattern="[0-9]{1,8}" maxlength="8" title="Ingrese solo números, máximo 8 dígitos" oninput="this.value=this.value.replace(/[^0-9]/g,'')" id="dni" name="dni" placeholder="DNI" aria-label="DNI" required>
         </div>
@@ -310,13 +310,21 @@
     const registerPage = document.getElementById('register-page');
     const roleOptions = document.querySelectorAll('input[name="rol"]');
     const usernameInput = document.getElementById('username');
+    const dniField = document.getElementById('dni-field');
+    const dniInput = document.getElementById('dni');
     const registerSubmit = document.getElementById('register-submit');
 
     function updateUsernameText() {
         const isOrganizer = document.getElementById('rol-organizador').checked;
-        const text = isOrganizer ? 'Usuario organizador' : 'Usuario';
+        const text = isOrganizer ? 'Nombre de la institución' : 'Usuario';
         usernameInput.placeholder = text;
         usernameInput.setAttribute('aria-label', text);
+        usernameInput.title = isOrganizer ? 'Nombre de la institución organizadora' : 'Nombre de usuario';
+        dniField.hidden = isOrganizer;
+        dniInput.required = !isOrganizer;
+        if (isOrganizer) {
+            dniInput.value = '';
+        }
         registerPage.classList.toggle('organizer-mode', isOrganizer);
         registerSubmit.textContent = isOrganizer ? 'Crear cuenta organizador' : 'Crear mi cuenta';
     }

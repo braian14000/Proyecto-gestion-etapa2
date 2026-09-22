@@ -11,11 +11,8 @@
         integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
     <style>
         body {
-            background-image: url("{{ url_for('static', filename='img/image.png') }}");
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
+            background-color: #eef6ff !important;
+            background-image: none !important;
             min-height: 100vh;
         }
 
@@ -122,25 +119,6 @@
         .btn-soporte:active {
             transform: scale(0.98);
         }
-        .btn-cafecito {
-            background-color: #f4a261 !important;
-            color: #2d1b0e !important;
-            border: none !important;
-            padding: 10px 16px !important;
-            border-radius: 6px !important;
-            font-weight: 600 !important;
-            transition: background-color 0.3s ease !important;
-            display: inline-block !important;
-            text-decoration: none !important;
-        }
-        .btn-cafecito:hover {
-            background-color: #e76f51 !important;
-            color: #ffffff !important;
-            text-decoration: none !important;
-        }
-        .btn-cafecito:active {
-            transform: scale(0.98);
-        }
         .auth-action-button {
             min-height: 49px !important;
             border: 0 !important;
@@ -156,17 +134,67 @@
             background: #0874cf !important;
             color: #ffffff !important;
         }
+
+        .calendar-logo {
+            display: inline-block;
+            width: 96px;
+            height: 86px;
+            flex: 0 0 auto;
+            background-image: url("{{ url_for('static', filename='img/LogoUTN_Gestion_De_Eventos.png') }}");
+            background-repeat: no-repeat;
+            background-size: 288px 144px;
+            background-position: -180px -25px;
+            filter: brightness(0) invert(1);
+        }
+        .app-topbar { position: relative; display: flex; align-items: center; justify-content: center; min-height: 106px; padding: 16px clamp(22px, 5vw, 60px); background: #092b70; color: #fff; }
+        .app-topbar-brand { display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%; }
+        .app-topbar-brand > div { text-align: center; }
+        .app-topbar-brand .calendar-logo { width: 96px; height: 86px; }
+        .app-topbar-title { margin: 0; color: #fff; font-size: 1.45rem; font-weight: 800; letter-spacing: .02em; }
+        .app-topbar-subtitle { margin: 3px 0 0; color: #dbe8ff; font-size: .92rem; }
+        .app-topbar-profile { position: absolute; right: clamp(22px, 5vw, 60px); display: inline-flex; width: 60px; height: 60px; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #1764ff; border-radius: 50%; color: #fff; background: #1764ff; font-weight: 800; text-decoration: none; }
+        .app-topbar-profile img { width: 100%; height: 100%; object-fit: cover; }
+        @media (max-width: 640px) { .app-topbar { min-height: 82px; padding: 12px 18px; } .app-topbar-brand .calendar-logo { width: 78px; height: 70px; } .app-topbar-title, .app-topbar-subtitle { display: none; } .app-topbar-profile { width: 50px; height: 50px; } }
     </style>
     {% block customCSS %}
     {% endblock %}
 </head>
 
 <body class="text-center {{ 'auth-page' if request.endpoint in ['login', 'register', 'forgot_password', 'reset_password', 'new_password'] else 'app-page' }}">
+    {% if current_user.is_authenticated %}
+    <header class="app-topbar">
+        <div class="app-topbar-brand">
+            <span class="calendar-logo" role="img" aria-label="Calendario de eventos"></span>
+            <div>
+                {% set topbar_titles = {
+                    'home': ('GESTIÓN DE EVENTOS', 'Panel principal'),
+                    'ver_eventos': ('EVENTOS', 'Explorá y encontrá tu próximo evento'),
+                    'mis_eventos': ('MIS EVENTOS', 'Gestioná tus eventos y tu asistencia'),
+                    'eventos_organizador': ('EVENTOS DEL ORGANIZADOR', 'Gestioná los eventos que creaste'),
+                    'mis_notificaciones': ('NOTIFICACIONES', 'Revisá tus mensajes y recordatorios'),
+                    'admin_dashboard': ('ADMINISTRACIÓN', 'Gestioná la plataforma de eventos'),
+                    'gestionar_organizadores': ('ORGANIZADORES', 'Administrá las solicitudes de acceso'),
+                    'crear_evento_organizador': ('CREAR EVENTO', 'Publicá una nueva actividad'),
+                    'editar_evento': ('EDITAR EVENTO', 'Actualizá la información del evento'),
+                    'ver_usuarios_evento': ('USUARIOS ANOTADOS', 'Consultá los asistentes del evento'),
+                    'validar_qr_evento': ('VALIDAR QR', 'Confirmá el ingreso al evento'),
+                    'generar_certificado': ('CERTIFICADO', 'Generá tu certificado de asistencia'),
+                    'mostrar_qr': ('CÓDIGO QR', 'Mostrá tu acreditación para el evento'),
+                    'soporte': ('SOPORTE', 'Ayuda y contacto')
+                } %}
+                <h1 class="app-topbar-title">{{ topbar_titles.get(request.endpoint, ('GESTIÓN DE EVENTOS', 'Administrá tu experiencia en eventos'))[0] }}</h1>
+                <p class="app-topbar-subtitle">{{ topbar_titles.get(request.endpoint, ('GESTIÓN DE EVENTOS', 'Administrá tu experiencia en eventos'))[1] }}</p>
+            </div>
+        </div>
+        <a class="app-topbar-profile" href="{{ url_for('home', abrir_perfil=1) }}" title="Abrir mi perfil" aria-label="Abrir mi perfil">
+            {% if current_user.foto_perfil %}<img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de {{ current_user.username }}">{% else %}{{ current_user.username[0]|upper }}{% endif %}
+        </a>
+    </header>
+    {% endif %}
     {% if request.endpoint != 'home' %}
     {% endif %}
     {% if request.endpoint not in ['login', 'register'] %}
     <div style="position: fixed !important; bottom: 20px !important; left: 20px !important; right: 20px !important; z-index: 2000 !important; display: flex !important; gap: 8px !important; justify-content: space-between !important; align-items: center !important;">
-        <a href="{{ config.CAFECITO_URL }}" class="btn-cafecito" target="_blank" rel="noopener noreferrer">Invitame un cafecito</a>
         <a href="{{ url_for('soporte') }}" class="btn-soporte" target="_blank" rel="noopener noreferrer">Soporte</a>
     </div>
     {% endif %}

@@ -1,0 +1,42 @@
+{
+  "evento": {
+    "id": 29,
+    "titulo": "asdasasd",
+    "fecha": "2026-09-19",
+    "hora": "21:23:00",
+    "descripcion": "a",
+    "lugar": "121a",
+    "capacidad_maxima": 7,
+    "finalizado": false,
+    "categoria": "Música",
+    "created_by": 10,
+    "created_at": "2026-09-17 09:31:26"
+  },
+  "inscriptos": [
+    {
+      "nombre": "braian12",
+      "gmail": "braiangallo035@gmail.com",
+      "confirmado_at": "2026-09-17 10:57:58",
+      "metodo_confirmacion": "DNI"
+    },
+    {
+      "nombre": "leonel",
+      "gmail": "lerossi@escuelasproa.edu.ar",
+      "confirmado_at": null,
+      "metodo_confirmacion": null
+    },
+    {
+      "nombre": "alvaro",
+      "gmail": "amrodriguez@escuelasproa.edu.ar",
+      "confirmado_at": null,
+      "metodo_confirmacion": null
+    },
+    {
+      "nombre": "santiago",
+      "gmail": "santiriedel1@gmail.com",
+      "confirmado_at": null,
+      "metodo_confirmacion": null
+    }
+  ],
+  "guardado_en": "2026-09-22T09:13:49"
+}

@@ -21,13 +21,13 @@
   .btn-cambiar-rol { margin: 0.25rem; }
   .table-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
   .request-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .foto-usuario { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #0d6efd; }
+  .foto-inicial { display: inline-flex; align-items: center; justify-content: center; background: #e9ecef; color: #04047f; font-weight: 700; }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="container-admin">
-  <h2 class="mb-4">Gestión de Organizadores</h2>
-  
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     <div class="alert-container mb-4">
@@ -87,12 +87,24 @@
   <div class="card">
     <div class="card-body">
       <p class="text-muted">Aquí puedes convertir usuarios en organizadores de eventos y gestionar sus roles.</p>
+
+      <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-sm-8 col-md-6">
+          <label for="dni-busqueda" class="form-label">Buscar usuario por DNI</label>
+          <input id="dni-busqueda" name="dni" value="{{ dni_busqueda or '' }}" class="form-control" inputmode="numeric" maxlength="8" pattern="[0-9]{1,8}">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">Buscar</button>
+          {% if dni_busqueda %}<a href="{{ url_for('gestionar_organizadores') }}" class="btn btn-outline-secondary">Ver todos</a>{% endif %}
+        </div>
+      </form>
       
       <div class="table-responsive">
         <table class="table table-hover">
           <thead class="table-light">
             <tr>
               <th>ID</th>
+              <th>Foto</th>
               <th>Usuario</th>
               <th>Email</th>
               <th>DNI</th>
@@ -106,6 +118,13 @@
               {% for usuario in usuarios %}
               <tr>
                 <td><strong>{{ usuario.id }}</strong></td>
+                <td>
+                  {% if usuario.foto_perfil %}
+                    <img class="foto-usuario" src="{{ url_for('static', filename=usuario.foto_perfil) }}" alt="Foto de {{ usuario.username }}">
+                  {% else %}
+                    <span class="foto-usuario foto-inicial" aria-label="Sin foto">{{ usuario.username[0].upper() }}</span>
+                  {% endif %}
+                </td>
                 <td>{{ usuario.username }}</td>
                 <td>{{ usuario.email }}</td>
                 <td>{{ usuario.dni }}</td>
@@ -128,7 +147,7 @@
                     {% set current_role = usuario.rol | default('estudiante') | lower | trim %}
                     
                     {% if current_role == 'admin' %}
-                      <!-- Administrador no se puede cambiar desde aquí -->
+                      <span class="text-muted">Protegido</span>
                     {% elif current_role == 'organizador' %}
                     <button type="submit" name="rol" value="estudiante" class="btn btn-sm btn-secondary btn-cambiar-rol">
                       Hacer Estudiante
@@ -138,13 +157,18 @@
                       Hacer Organizador
                     </button>
                     {% endif %}
+                    {% if current_role != 'admin' %}
+                    <button type="submit" name="action" value="eliminar" class="btn btn-sm btn-danger btn-cambiar-rol" onclick="return confirm('¿Eliminar definitivamente esta cuenta?');">
+                      Eliminar cuenta
+                    </button>
+                    {% endif %}
                   </form>
                 </td>
               </tr>
               {% endfor %}
             {% else %}
               <tr>
-                <td colspan="7" class="text-center text-muted">No hay usuarios registrados</td>
+                <td colspan="8" class="text-center text-muted">No hay usuarios registrados</td>
               </tr>
             {% endif %}
           </tbody>

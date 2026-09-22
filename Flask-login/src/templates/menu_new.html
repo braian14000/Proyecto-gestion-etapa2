@@ -131,6 +131,166 @@
 .modal-body ul li {
   margin-bottom: 0.5rem;
 }
+.terms-modal .modal-dialog {
+  max-width: 1260px;
+  margin: 2.2rem auto;
+}
+.terms-modal .modal-content {
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 32px 70px rgba(17, 41, 73, 0.28);
+}
+.terms-modal .modal-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.5rem;
+  min-height: 120px;
+  padding: 1.2rem 2rem 1rem 1.5rem;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(135deg, #0a3d73 0%, #0e4d8b 35%, #0c6bb7 100%);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.15);
+}
+.terms-modal .terms-brand {
+  display: flex;
+  align-items: center;
+  gap: 1.3rem;
+  width: 100%;
+}
+.terms-modal .terms-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  height: 78px;
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  letter-spacing: -0.08em;
+  transform: translateY(-2px);
+}
+.terms-modal .terms-brand-divider {
+  width: 2px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.terms-modal .terms-brand-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+  color: #ffffff;
+}
+.terms-modal .terms-brand-title h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 2vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+.terms-modal .terms-brand-title h3 {
+  margin: 0;
+  font-size: clamp(0.72rem, 1vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.terms-modal .btn-close {
+  position: absolute;
+  right: 1.2rem;
+  top: 1rem;
+  filter: invert(1) grayscale(1);
+  opacity: 1;
+}
+.terms-modal .modal-body {
+  background: #edf4ff;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+.terms-modal .terms-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.2rem 1.8rem 0.5rem;
+}
+.terms-modal .terms-item {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  padding: 1.8rem 0 1.2rem;
+  border-top: 1px solid rgba(19, 64, 109, 0.18);
+}
+.terms-modal .terms-item:first-child {
+  border-top: none;
+}
+.terms-modal .terms-number {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.2rem;
+  color: #1a3a64;
+  font-size: clamp(3rem, 4.2vw, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  opacity: 0.92;
+}
+.terms-modal .terms-item-content {
+  padding-right: 1.3rem;
+}
+.terms-modal .terms-item-content h4 {
+  margin: 0 0 0.8rem;
+  color: #0f3d7f;
+  font-size: clamp(1.55rem, 2vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.terms-modal .terms-item-content p,
+.terms-modal .terms-item-content li {
+  color: #203857;
+  font-size: 1.08rem;
+  line-height: 1.65;
+  text-align: left;
+}
+.terms-modal .terms-item-content ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+.terms-modal .terms-item-content li {
+  margin-bottom: 0.7rem;
+}
+.terms-modal .terms-item-content li:last-child {
+  margin-bottom: 0;
+}
+.terms-modal .terms-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 1.7rem 1.5rem;
+  background: #edf4ff;
+  border-top: none;
+}
+.terms-modal .terms-close-btn {
+  min-width: 170px;
+  min-height: 52px;
+  border: none;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #0e4d8b 0%, #0b3d76 100%);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  box-shadow: 0 12px 24px rgba(10, 59, 112, 0.3);
+}
+.terms-modal .terms-close-btn:hover {
+  background: linear-gradient(180deg, #0f5ca6 0%, #0a3d76 100%);
+  color: #ffffff;
+}
 .terminos-link {
   cursor: pointer;
   text-decoration: underline;
@@ -394,6 +554,9 @@
       <a class="btn btn-light btn-pill shadow-sm" href="{{ url_for('ver_eventos') }}">Ver Eventos</a>
       <a class="btn btn-light btn-pill shadow-sm" href="{{ url_for('mis_eventos') }}">Eventos Anotados</a>
       <a class="btn btn-light btn-pill shadow-sm" href="{{ url_for('ver_eventos') }}">Próximos Eventos</a>
+      <a class="btn btn-warning btn-pill shadow-sm" href="{{ url_for('mis_notificaciones') }}" title="Ver recordatorios y mensajes">
+        🔔 Mis Notificaciones
+      </a>
       
       {% if current_user.rol == 'organizador' or current_user.rol == 'admin' %}
       <div class="organizador-menu">
@@ -402,7 +565,6 @@
           <a class="btn btn-crear-evento btn-pill shadow-sm" href="{{ url_for('crear_evento_organizador') }}">Crear Evento</a>
           <a class="btn btn-mis-eventos btn-pill shadow-sm" href="{{ url_for('eventos_organizador') }}">Mis Eventos</a>
           <a class="btn btn-validar-qr btn-pill shadow-sm" href="{{ url_for('ver_eventos') }}">Validar QR</a>
-          <a class="btn btn-validar-qr btn-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#perfilModal" style="cursor: pointer;">💬 Mis Notificaciones</a>
         </div>
       </div>
       {% endif %}
@@ -430,51 +592,92 @@
 </div>
 
 <!-- Modal de Términos y Condiciones -->
-<div class="modal fade" id="terminosModal" tabindex="-1" aria-labelledby="terminosModalLabel" aria-hidden="true">
+<div class="modal fade terms-modal" id="terminosModal" tabindex="-1" aria-labelledby="terminosModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="terminosModalLabel">Términos y Condiciones de Uso - Sistema de Eventos UTN</h5>
+        <div class="terms-brand" aria-label="Header de términos y condiciones">
+          <div class="terms-brand-mark" aria-hidden="true">
+            <img src="{{ url_for('static', filename='img/LogoUTN_Gestion_De_Eventos.png') }}" alt="Logo UTN">
+          </div>
+          <div class="terms-brand-divider" aria-hidden="true"></div>
+          <div class="terms-brand-title">
+            <h2>UTN</h2>
+            <h3>Términos y condiciones de uso</h3>
+          </div>
+        </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <h5>1. Aceptación de los Términos</h5>
-        <p>Al utilizar esta plataforma, el usuario acepta cumplir con las reglas establecidas para la inscripción y participación en los eventos organizados por la UTN.</p>
+        <div class="terms-list">
+          <div class="terms-item">
+            <div class="terms-number">01</div>
+            <div class="terms-item-content">
+              <h4>Aceptación de los Términos</h4>
+              <p>Al utilizar esta plataforma, el usuario acepta cumplir con las reglas establecidas para la inscripción y participación en los eventos organizados por la UTN.</p>
+            </div>
+          </div>
 
-        <h5>2. Proceso de Inscripción y Datos del Usuario</h5>
-        <ul>
-          <li>Para inscribirse en un evento, el usuario debe proporcionar información verídica, incluyendo nombre, apellido, teléfono, correo electrónico (Gmail) y DNI.</li>
-          <li>El sistema validará la disponibilidad de cupos antes de confirmar cualquier inscripción.</li>
-          <li><strong>Restricción de duplicados:</strong> El sistema impedirá que un usuario se inscriba más de una vez en el mismo evento. Asimismo, no se permitirá la asistencia de "clones" o registros de identidad duplicados para un mismo evento.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">02</div>
+            <div class="terms-item-content">
+              <h4>Proceso de Inscripción y Datos del Usuario</h4>
+              <ul>
+                <li>Para inscribirse en un evento, el usuario debe proporcionar información verídica, incluyendo nombre, apellido, teléfono, correo electrónico (Gmail) y DNI.</li>
+                <li>El sistema validará la disponibilidad de cupos antes de confirmar cualquier inscripción.</li>
+                <li><strong>Restricción de duplicados:</strong> El sistema impedirá que un usuario se inscriba más de una vez en el mismo evento. Asimismo, no se permitirá la asistencia de "clones" o registros de identidad duplicados para un mismo evento.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>3. Confirmación y Acceso al Evento</h5>
-        <ul>
-          <li>Es responsabilidad del usuario poseer el comprobante de inscripción con su respectivo código QR, el cual podrá descargar desde la plataforma.</li>
-          <li>Para el ingreso al evento, el organizador verificará la identidad del asistente mediante el DNI o el escaneo del código QR.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">03</div>
+            <div class="terms-item-content">
+              <h4>Confirmación y Acceso al Evento</h4>
+              <ul>
+                <li>Es responsabilidad del usuario poseer el comprobante de inscripción con su respectivo código QR, el cual podrá descargar desde la plataforma.</li>
+                <li>Para el ingreso al evento, el organizador verificará la identidad del asistente mediante el DNI o el escaneo del código QR.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>4. Cancelaciones y Modificaciones</h5>
-        <ul>
-          <li><strong>Por el Usuario:</strong> El usuario tiene el derecho de cancelar su inscripción previamente realizada a través del sistema.</li>
-          <li><strong>Por la Administración:</strong> La UTN se reserva el derecho de suspender o reprogramar eventos. En tales casos, el sistema notificará automáticamente a los usuarios inscritos sobre cualquier modificación o cancelación.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">04</div>
+            <div class="terms-item-content">
+              <h4>Cancelaciones y Modificaciones</h4>
+              <ul>
+                <li><strong>Por el Usuario:</strong> El usuario tiene el derecho de cancelar su inscripción previamente realizada a través del sistema.</li>
+                <li><strong>Por la Administración:</strong> La UTN se reserva el derecho de suspender o reprogramar eventos. En tales casos, el sistema notificará automáticamente a los usuarios inscritos sobre cualquier modificación o cancelación.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>5. Disponibilidad y Funcionamiento Técnico</h5>
-        <ul>
-          <li>El sistema está diseñado para estar disponible las 24 horas del día y ser compatible con los navegadores Chrome, Edge, Firefox y Safari.</li>
-          <li>La plataforma es responsiva, permitiendo el acceso desde dispositivos móviles, tablets y computadoras.</li>
-          <li>Se busca un tiempo de carga óptimo no mayor a 5 segundos para garantizar una experiencia fluida.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">05</div>
+            <div class="terms-item-content">
+              <h4>Disponibilidad y Funcionamiento Técnico</h4>
+              <ul>
+                <li>El sistema está diseñado para estar disponible las 24 horas del día y ser compatible con los navegadores Chrome, Edge, Firefox y Safari.</li>
+                <li>La plataforma es responsiva, permitiendo el acceso desde dispositivos móviles, tablets y computadoras.</li>
+                <li>Se busca un tiempo de carga óptimo no mayor a 5 segundos para garantizar una experiencia fluida.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>6. Privacidad y Seguridad de Datos</h5>
-        <ul>
-          <li>Toda la información personal proporcionada por los usuarios será almacenada de forma segura y codificada.</li>
-          <li>Las funciones de administración están protegidas mediante autenticación obligatoria para asegurar que solo personal autorizado gestione los eventos y las listas de inscriptos.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">06</div>
+            <div class="terms-item-content">
+              <h4>Privacidad y Seguridad de Datos</h4>
+              <ul>
+                <li>Toda la información personal proporcionada por los usuarios será almacenada de forma segura y codificada.</li>
+                <li>Las funciones de administración están protegidas mediante autenticación obligatoria para asegurar que solo personal autorizado gestione los eventos y las listas de inscriptos.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      <div class="modal-footer terms-footer">
+        <button type="button" class="btn terms-close-btn" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>

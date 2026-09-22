@@ -1,0 +1,17 @@
+{
+  "evento": {
+    "id": 50,
+    "titulo": "a",
+    "fecha": "2026-03-12",
+    "hora": "12:31:00",
+    "descripcion": "abc",
+    "lugar": "1º de mayo",
+    "capacidad_maxima": 12,
+    "finalizado": false,
+    "categoria": "General",
+    "created_by": null,
+    "created_at": "2026-09-22 09:17:22"
+  },
+  "inscriptos": [],
+  "guardado_en": "2026-09-22T09:18:47"
+}

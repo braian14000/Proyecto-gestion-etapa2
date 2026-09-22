@@ -2,62 +2,349 @@
 
 {% block title %}Mis eventos{% endblock %}
 
+{% block customCSS %}
+<style>
+  body.app-page {
+    background: #eef6ff;
+  }
+
+  .mis-eventos-page {
+    min-height: 100vh;
+    color: #123d78;
+    background: #eef6ff;
+  }
+
+  .mis-eventos-header {
+    display: none;
+    position: relative;
+    overflow: hidden;
+    min-height: 124px;
+    background: #124b91;
+    color: #fff;
+  }
+
+  .mis-eventos-header::after {
+    display: none;
+  }
+
+  .mis-eventos-header-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1120px;
+    min-height: 124px;
+    margin: 0 auto;
+    padding: 22px 34px;
+  }
+
+  .mis-eventos-heading {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .calendar-mark {
+    position: relative;
+    display: inline-flex;
+    width: 58px;
+    height: 58px;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid currentColor;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 23px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .calendar-mark::before,
+  .calendar-mark::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 5px;
+    height: 18px;
+    border-radius: 3px;
+    background: currentColor;
+  }
+
+  .calendar-mark::before { left: 12px; }
+  .calendar-mark::after { right: 12px; }
+
+  .mis-eventos-title {
+    margin: 0;
+    font-size: clamp(1.7rem, 3vw, 2.35rem);
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .mis-eventos-subtitle {
+    margin: 3px 0 0;
+    color: #e2edff;
+    font-size: 1rem;
+  }
+
+  .mis-eventos-logo {
+    position: absolute;
+    top: 50%;
+    right: 24px;
+    z-index: 2;
+    width: 190px;
+    max-height: 86px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    transform: translateY(-50%);
+  }
+
+  .mis-eventos-content {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 34px 24px 90px;
+  }
+
+  .mis-eventos-intro {
+    margin: 0 0 30px;
+    color: #244a83;
+    font-size: 1.1rem;
+  }
+
+  .mis-eventos-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+  }
+
+  .mis-eventos-actions .btn,
+  .event-card-actions .btn,
+  .event-card-actions button {
+    min-height: 40px;
+    border: 1px solid #0752ad !important;
+    border-radius: 8px !important;
+    color: #06439a !important;
+    background: #fff !important;
+    box-shadow: 0 4px 10px rgba(22, 71, 130, .12);
+    font-weight: 700;
+  }
+
+  .mis-eventos-actions .btn:hover,
+  .event-card-actions .btn:hover,
+  .event-card-actions button:hover {
+    color: #fff !important;
+    background: #0752ad !important;
+  }
+
+  .event-card {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 30px;
+    align-items: center;
+    margin-bottom: 26px;
+    padding: 20px;
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 7px 20px rgba(32, 77, 130, .14);
+  }
+
+  .event-card-visual {
+    display: flex;
+    min-height: 170px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: linear-gradient(140deg, #1764bd, #0b397d);
+  }
+
+  .event-card-visual img {
+    display: block;
+    width: 100%;
+    height: 170px;
+    border-radius: 12px;
+    object-fit: cover;
+  }
+
+  .event-card-visual .calendar-mark {
+    width: 92px;
+    height: 92px;
+    border-width: 5px;
+    font-size: 34px;
+  }
+
+  .event-card-visual .calendar-mark::before,
+  .event-card-visual .calendar-mark::after {
+    width: 7px;
+    height: 25px;
+  }
+
+  .event-card-visual .calendar-mark::before { left: 19px; }
+  .event-card-visual .calendar-mark::after { right: 19px; }
+
+  .event-card-info {
+    min-width: 0;
+  }
+
+  .event-card-title {
+    margin: 0 0 8px;
+    color: #123d78;
+    font-size: 1.65rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .event-card-meta {
+    margin-bottom: 16px;
+    color: #2d558a;
+    font-size: 1rem;
+  }
+
+  .event-card-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #123d78;
+    background: #e8f2ff;
+    font-weight: 700;
+  }
+
+  .event-card-status::before {
+    content: '◷';
+    font-size: 1.15rem;
+  }
+
+  .event-card-registered {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #fff;
+    background: #1464c0;
+    font-weight: 700;
+  }
+
+  .event-card-actions {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .event-card-actions form { margin: 0; }
+  .event-card-actions .btn-danger,
+  .event-card-actions .btn-danger:hover { color: #a72929 !important; border-color: #c74b4b !important; }
+  .event-card-actions .btn-danger:hover { color: #fff !important; background: #bd3838 !important; }
+
+  .empty-events {
+    padding: 32px;
+    border-radius: 14px;
+    color: #244a83;
+    background: #fff;
+    box-shadow: 0 7px 20px rgba(32, 77, 130, .12);
+    text-align: center;
+  }
+
+  @media (max-width: 700px) {
+    .mis-eventos-header-inner { padding: 20px; }
+    .mis-eventos-heading { gap: 12px; }
+    .mis-eventos-heading .calendar-mark { width: 46px; height: 46px; }
+    .mis-eventos-subtitle { font-size: .85rem; }
+    .mis-eventos-logo { right: 12px; width: 100px; }
+    .mis-eventos-content { padding: 25px 15px 70px; }
+    .mis-eventos-actions { justify-content: stretch; }
+    .mis-eventos-actions .btn { flex: 1; }
+    .event-card { grid-template-columns: 1fr; gap: 18px; padding: 15px; }
+    .event-card-visual { min-height: 125px; }
+    .event-card-visual img { height: 125px; }
+    .event-card-title { font-size: 1.35rem; }
+    .event-card-actions .btn,
+    .event-card-actions form { flex: 1 1 100%; }
+    .event-card-actions form .btn { width: 100%; }
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-  <div class="container mt-5">
-    <div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
-      <div>
+  <main class="mis-eventos-page">
+    <header class="mis-eventos-header">
+      <div class="mis-eventos-header-inner">
+        <div class="mis-eventos-heading">
+          <span class="calendar-mark" aria-hidden="true">✓</span>
+          <div>
+            <h1 class="mis-eventos-title">MIS EVENTOS</h1>
+            <p class="mis-eventos-subtitle">Gestioná tus eventos y tu asistencia</p>
+          </div>
+        </div>
+        <img class="mis-eventos-logo" src="{{ url_for('static', filename='img/LogoUTN_Gestion_De_Eventos.png') }}" alt="UTN Gestión de eventos">
+      </div>
+    </header>
+
+    <section class="mis-eventos-content">
+      <div class="mis-eventos-actions">
+        <a class="btn" href="{{ url_for('mis_notificaciones') }}">Mis notificaciones</a>
+        <a class="btn" href="{{ url_for('home') }}">Ir al menú</a>
+      </div>
+      <p class="mis-eventos-intro">
         {% if modo == 'organizador' %}
-          <h3>Mis eventos</h3>
-          <p class="text-muted">Aquí verás los eventos que creaste y los que estás participando como asistente.</p>
+          Aquí verás los eventos que creaste y los que estás participando como asistente.
         {% else %}
-          <h3>Eventos anotados</h3>
-          <p class="text-muted">Aquí puedes ver tus eventos registrados y cancelar tu asistencia si cambias de planes.</p>
+          Aquí puedes ver tus eventos registrados y cancelar tu asistencia si cambias de planes.
         {% endif %}
-      </div>
-      <div class="d-flex gap-2">
-        <a class="btn btn-secondary" href="{{ url_for('home') }}">Ir al menú</a>
-      </div>
-    </div>
+      </p>
+
     {% if registros and registros|length > 0 %}
-      <div class="list-group mt-3">
+      <div class="events-list">
         {% for r in registros %}
-          <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="mb-2 flex-grow-1">
-              <h5 class="mb-1">{{ r.titulo }}</h5>
-              <small class="text-muted">{{ r.fecha }} · {{ r.hora }} · {{ r.lugar }}</small>
-              <div class="mt-2 countdown-box" data-event-start="{{ r.fecha }}T{{ r.hora }}">
-                <span class="countdown-text badge bg-light text-dark border">Calculando tiempo restante...</span>
+          <article class="event-card">
+            <div class="event-card-visual">
+              {% if r.imagen %}
+                <img src="{{ url_for('static', filename=r.imagen) }}" alt="Imagen de {{ r.titulo }}">
+              {% else %}
+                <span class="calendar-mark" aria-hidden="true">{{ loop.index }}</span>
+              {% endif %}
+            </div>
+            <div class="event-card-info">
+              <h2 class="event-card-title">{{ r.titulo }}</h2>
+              <div class="event-card-meta">{{ r.fecha }} <span aria-hidden="true">•</span> {{ r.hora }} <span aria-hidden="true">•</span> {{ r.lugar }}</div>
+              <div class="event-card-status countdown-box" data-event-start="{{ r.fecha }}T{{ r.hora }}">
+                <span class="countdown-text">Calculando tiempo restante...</span>
               </div>
               {% if r.asistido %}
-                <div class="mt-2"><span class="badge bg-primary">Asistió</span></div>
+                <span class="event-card-registered">✓ Asistió</span>
               {% elif r.qr_code %}
-                <div class="mt-2"><span class="badge bg-success">Registrado</span></div>
+                <span class="event-card-registered">✓ Registrado</span>
               {% else %}
-                <div class="mt-2"><span class="badge bg-warning text-dark">Sin QR</span></div>
+                <span class="event-card-registered">Sin QR</span>
               {% endif %}
+              <div class="event-card-actions mt-3">
+                <a class="btn btn-sm" href="{{ url_for('detalle_evento', evento_id=r.evento_id, origin='mis_eventos') }}">Ver detalles</a>
+                {% if r.qr_code %}
+                  <a class="btn btn-sm" href="{{ url_for('mostrar_qr', registro_id=r.registro_id, origin='mis_eventos') }}">Ver QR</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('cancelar_asistencia', registro_id=r.registro_id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Deseas cancelar tu asistencia a este evento?');">Borrar asistencia</button>
+                </form>
+              </div>
             </div>
-            <div class="btn-group">
-              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('detalle_evento', evento_id=r.evento_id, origin='mis_eventos') }}">Ver detalles</a>
-              {% if r.qr_code %}
-                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('mostrar_qr', registro_id=r.registro_id, origin='mis_eventos') }}">Ver QR</a>
-              {% endif %}
-              <form method="post" action="{{ url_for('cancelar_asistencia', registro_id=r.registro_id) }}" style="display:inline-block; margin:0;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Deseas cancelar tu asistencia a este evento?');">Borrar asistencia</button>
-              </form>
-            </div>
-          </div>
+          </article>
         {% endfor %}
       </div>
     {% else %}
       {% if modo == 'organizador' %}
-        <div class="alert alert-info mt-3">No tenés eventos creados ni anotaciones para mostrar todavía.</div>
+        <div class="empty-events">No tenés eventos creados ni anotaciones para mostrar todavía.</div>
       {% else %}
-        <div class="alert alert-info mt-3">No estás anotado en ningún evento todavía.</div>
+        <div class="empty-events">No estás anotado en ningún evento todavía.</div>
       {% endif %}
-      <a class="btn btn-primary" href="{{ url_for('ver_eventos') }}">Ver eventos</a>
+      <div class="mis-eventos-actions"><a class="btn" href="{{ url_for('ver_eventos') }}">Ver eventos</a></div>
     {% endif %}
-  </div>
+    </section>
+  </main>
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {

@@ -6,6 +6,14 @@
     <title>Mis Notificaciones</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        .app-topbar { position: relative; display: flex; align-items: center; justify-content: center; min-height: 106px; padding: 16px clamp(22px, 5vw, 60px); background: #092b70; color: #fff; }
+        .app-topbar-brand { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 74px; }
+        .app-topbar-brand .calendar-logo { position: absolute; left: 0; width: 96px; height: 86px; background-image: url("{{ url_for('static', filename='img/LogoUTN_Gestion_De_Eventos.png') }}"); background-repeat: no-repeat; background-size: 288px 144px; background-position: -180px -25px; filter: brightness(0) invert(1); }
+        .app-topbar-title { margin: 0; color: #fff; font-size: 1.45rem; font-weight: 800; letter-spacing: .02em; text-align: center; }
+        .app-topbar-subtitle { margin: 3px 0 0; color: #dbe8ff; font-size: .92rem; text-align: center; }
+        .app-topbar-profile { position: absolute; right: clamp(22px, 5vw, 60px); display: inline-flex; width: 60px; height: 60px; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #1764ff; border-radius: 50%; color: #fff; background: #1764ff; font-weight: 800; text-decoration: none; }
+        .app-topbar-profile img { width: 100%; height: 100%; object-fit: cover; }
+        @media (max-width: 640px) { .app-topbar { min-height: 82px; padding: 12px 18px; } .app-topbar-brand .calendar-logo { width: 78px; height: 70px; } .app-topbar-profile { right: 18px; width: 50px; height: 50px; } }
         .notificacion { 
             background: #f8f9fa; 
             padding: 15px; 
@@ -16,6 +24,38 @@
         .notificacion.no-leida {
             background: #e8f4f8;
             border-left-color: #ff6b6b;
+        }
+        .notificacion.sistema {
+            background: #fff3f2;
+            border-left-color: #d93025;
+            box-shadow: inset 0 0 0 1px rgba(217, 48, 37, 0.12);
+        }
+        .notificacion.recordatorio {
+            background: #fff3e0;
+            border-left-color: #ff6f00;
+            box-shadow: inset 0 0 0 1px rgba(255, 111, 0, 0.12);
+        }
+        .notificacion.recordatorio .persona-avatar.inicial {
+            background: #ffe0d2;
+            color: #e65100;
+        }
+        .notificacion.recordatorio .asunto {
+            color: #e65100;
+        }
+        .notificacion.recordatorio .mensaje {
+            color: #bf360c;
+            font-weight: 600;
+        }
+        .notificacion.sistema .persona-avatar.inicial {
+            background: #ffe1dd;
+            color: #a32a1d;
+        }
+        .notificacion.sistema .asunto {
+            color: #a32a1d;
+        }
+        .notificacion.sistema .mensaje {
+            color: #5f1e1a;
+            font-weight: 600;
         }
         .notificacion .meta {
             font-size: 12px;
@@ -45,6 +85,14 @@
             font-size: 17px;
             font-weight: bold;
         }
+        .persona-avatar.asistente-sistema {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-color: #3aa4cc;
+            background: #dff5ff;
+            font-size: 22px;
+        }
         .persona-nombre { font-weight: bold; color: #2c3e50; }
         .notificacion .asunto {
             font-weight: bold;
@@ -63,6 +111,26 @@
             border-radius: 4px;
             font-size: 12px;
             font-weight: bold;
+        }
+        .badge.recordatorio {
+            background: #ff6f00;
+            color: white;
+        }
+        
+        /* Botón para cerrar notificación */
+        .btn-cerrar-notificacion {
+            background: #ff6f00;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .btn-cerrar-notificacion:hover {
+            background: #e65100;
         }
         
         /* Estilos para respuestas */
@@ -164,11 +232,21 @@
         .chat-conversacion > .notificacion { margin: 12px; }
     </style>
 </head>
-<body>
+<body style="background-color: #eef6ff;">
+    <header class="app-topbar">
+        <div class="app-topbar-brand">
+            <span class="calendar-logo" role="img" aria-label="Calendario de eventos"></span>
+            <div>
+                <h1 class="app-topbar-title">NOTIFICACIONES</h1>
+                <p class="app-topbar-subtitle">Revisá tus mensajes y recordatorios</p>
+            </div>
+        </div>
+        <a class="app-topbar-profile" href="{{ url_for('home', abrir_perfil=1) }}" title="Abrir mi perfil" aria-label="Abrir mi perfil">
+            {% if current_user.foto_perfil %}<img src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de {{ current_user.username }}">{% else %}{{ current_user.username[0]|upper }}{% endif %}
+        </a>
+    </header>
     <div class="container">
         <a href="{{ url_for('home') }}" style="display: inline-block; margin-bottom: 20px; color: #2c3e50;">← Volver al inicio</a>
-        
-        <h2>{% if es_organizador %}Mis Notificaciones{% else %}Respuestas a mis mensajes{% endif %}</h2>
         
         {% if no_leidas_count > 0 %}
             <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
@@ -177,20 +255,28 @@
         {% endif %}
         
         {% macro mensaje_card(notif) %}
-                <div class="notificacion {% if not notif.leido %}no-leida{% endif %}">
+                <div class="notificacion {% if not notif.leido %}no-leida{% endif %} {% if notif.asunto == 'RECORDATORIO' %}recordatorio{% elif notif.remitente_nombre == 'Sistema' %}sistema{% endif %}">
                     <div class="persona">
-                        {% if notif.remitente_foto %}
+                        {% if notif.es_propio and current_user.foto_perfil %}
+                            <img class="persona-avatar" src="{{ url_for('static', filename=current_user.foto_perfil) }}" alt="Foto de {{ current_user.username }}">
+                        {% elif notif.remitente_foto %}
                             <img class="persona-avatar" src="{{ url_for('static', filename=notif.remitente_foto) }}" alt="Foto de {{ notif.remitente_nombre }}">
+                        {% elif notif.remitente_nombre == 'Sistema' %}
+                            <img class="persona-avatar asistente-sistema" src="{{ url_for('static', filename='img/asistente_sistema.svg') }}" alt="Asistente del sistema">
                         {% else %}
-                            <span class="persona-avatar inicial">{{ notif.remitente_nombre[0].upper() }}</span>
+                            <span class="persona-avatar inicial">{% if notif.asunto == 'RECORDATORIO' %}{% elif notif.remitente_nombre == 'Sistema' %}{% else %}{{ (current_user.username if notif.es_propio else notif.remitente_nombre)[0].upper() }}{% endif %}</span>
                         {% endif %}
-                        <span class="persona-nombre">{{ notif.remitente_nombre }}</span>
+                        <span class="persona-nombre">{% if notif.asunto == 'RECORDATORIO' %}Recordatorio{% elif notif.remitente_nombre == 'Sistema' %}Sistema{% else %}{{ current_user.username if notif.es_propio else notif.remitente_nombre }}{% endif %}</span>
                     </div>
                     <div class="meta">
-                        <strong>Evento:</strong> {{ notif.evento_titulo }}
-                        | <strong> Fecha:</strong> {{ notif.created_at }}
-                        {% if es_organizador and not notif.leido %}
-                            <span class="badge">SIN LEER</span>
+                        {% if notif.asunto == 'RECORDATORIO' %}
+                            <strong>Recordatorio:</strong> {{ notif.evento_titulo }}
+            
+                        {% elif notif.remitente_nombre == 'Sistema' %}
+                            <strong>Recordatorio del evento:</strong> {{ notif.evento_titulo }}
+                            <span class="badge">IMPORTANTE</span>
+                        {% else %}
+                            <strong>Evento:</strong> {{ notif.evento_titulo }}
                         {% endif %}
                     </div>
                     
@@ -202,10 +288,9 @@
                         {{ notif.mensaje }}
                     </div>
                     
-                    <!-- Respuestas existentes -->
                     {% if notif.respuestas %}
                         <div class="respuestas-container">
-                            <strong style="color: #28a745;">✓ Respuestas:</strong>
+                            <strong style="color: #28a745;"> Respuestas:</strong>
                             {% for respuesta in notif.respuestas %}
                                 <div class="respuesta-item">
                                     <div class="persona">
@@ -227,14 +312,36 @@
                         </div>
                     {% endif %}
                     
-                    <!-- Formulario para responder -->
-                    {% if es_organizador %}
+                    {% if notif.asunto == 'RECORDATORIO' or notif.remitente_nombre == 'Sistema' %}
+                        <div style="margin-top: 12px;">
+                            <form method="post" action="{{ url_for('eliminar_notificacion_sistema', notif_id=notif.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-cerrar-notificacion">Recordado</button>
+                            </form>
+                            <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                                Recordatorio automático del sistema.
+                            </div>
+                        </div>
+                    {% elif notif.remitente_nombre == 'Sistema' %}
+                        <div style="margin-top: 12px; font-size: 12px; color: #596487;">
+                            Recordatorio automático del sistema.
+                        </div>
+                    {% elif es_organizador and notif.remitente_id != current_user.id %}
                     <div class="formulario-respuesta">
                         <strong style="color: #0d6efd;"> Responder a este mensaje:</strong>
                         <form method="post" action="{{ url_for('responder_mensaje', mensaje_id=notif.id) }}" style="margin-top: 10px;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <textarea name="respuesta" placeholder="Escribe tu respuesta aquí..." required></textarea>
                             <button type="submit">Enviar Respuesta</button>
+                        </form>
+                    </div>
+                    {% elif es_organizador %}
+                    <div class="formulario-respuesta">
+                        <strong style="color: #0d6efd;">Responder en este chat:</strong>
+                        <form method="post" action="{{ url_for('responder_usuario', mensaje_id=notif.id) }}" style="margin-top: 10px;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <textarea name="respuesta" placeholder="Escribe tu mensaje aquí..." required></textarea>
+                            <button type="submit">Enviar Mensaje</button>
                         </form>
                     </div>
                     {% else %}
@@ -253,14 +360,14 @@
 
         {% if es_organizador and chats %}
             {% for chat in chats %}
-                <details class="chat-conversacion"{% if request.args.get('chat')|int == chat.usuario_id %} open{% endif %}>
+                <details class="chat-conversacion" data-chat-id="{{ chat.usuario_id }}"{% if request.args.get('chat')|int == chat.usuario_id %} open{% endif %}>
                     <summary>
                         {% if chat.foto %}
                             <img class="persona-avatar" src="{{ url_for('static', filename=chat.foto) }}" alt="">
                         {% else %}
                             <span class="persona-avatar inicial">{{ chat.nombre[0].upper() }}</span>
                         {% endif %}
-                        <span>Chat con {{ chat.nombre }}</span>
+                        <span>Chat con {{ chat.nombre }}{% if chat.mensajes %} ({{ chat.mensajes|length }}){% endif %}</span>
                         <span class="chat-flecha">⌄</span>
                     </summary>
                     {% if chat.usuario_id %}
@@ -269,6 +376,11 @@
                             <button type="submit" class="btn-secundario">Marcar todo como leído</button>
                         </form>
                         <form method="post" action="{{ url_for('eliminar_chat', usuario_id=chat.usuario_id) }}" onsubmit="return confirm('¿Eliminar este chat completo?');" style="margin: 10px 15px; text-align: right;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-secundario">Eliminar chat</button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="{{ url_for('eliminar_notificaciones_sistema') }}" onsubmit="return confirm('¿Eliminar todas las notificaciones del sistema?');" style="margin: 10px 15px; text-align: right;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn-secundario">Eliminar chat</button>
                         </form>
@@ -290,8 +402,64 @@
                 </p>
             </div>
         {% endif %}
-        
 
     </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+
+        function marcarChatComoLeido(usuarioId) {
+          if (!usuarioId || !csrfToken) return;
+
+          fetch('/chat/' + usuarioId + '/marcar-leido', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              'X-CSRFToken': csrfToken
+            },
+            body: new URLSearchParams({ csrf_token: csrfToken }).toString(),
+            credentials: 'same-origin'
+          }).then(() => {
+            const currentUrl = new URL(window.location.href);
+            if (!currentUrl.searchParams.has('chat')) {
+              currentUrl.searchParams.set('chat', usuarioId);
+              window.location.href = currentUrl.toString();
+            }
+          }).catch(() => {
+            const currentUrl = new URL(window.location.href);
+            if (!currentUrl.searchParams.has('chat')) {
+              currentUrl.searchParams.set('chat', usuarioId);
+              window.location.href = currentUrl.toString();
+            }
+          });
+        }
+
+        document.querySelectorAll('.chat-conversacion').forEach(function (details) {
+          const usuarioId = details.dataset.chatId;
+          if (!usuarioId) return;
+
+          if (details.open) {
+            marcarChatComoLeido(usuarioId);
+          }
+
+          details.addEventListener('toggle', function () {
+            if (details.open) {
+              marcarChatComoLeido(usuarioId);
+            }
+          });
+        });
+
+                document.querySelectorAll('form[action*="/responder"]').forEach(function (form) {
+                    form.addEventListener('submit', function () {
+                        const submitButton = form.querySelector('button[type="submit"]');
+                        if (submitButton) {
+                            submitButton.disabled = true;
+                            submitButton.textContent = 'Enviando...';
+                        }
+                    });
+                });
+      });
+    </script>
 </body>
 </html>

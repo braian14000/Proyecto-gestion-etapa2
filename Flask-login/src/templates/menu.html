@@ -4,8 +4,74 @@
 
 {% block customCSS %}
 <style>
-  .menu-card { max-width: 420px; margin: 5rem auto; }
-  .btn-pill { border-radius: 999px; padding: 14px 26px; font-weight: 600; }
+  body.app-page {
+    overflow-x: hidden;
+    background-color: #eef6ff !important;
+    background-image: none !important;
+  }
+  body.app-page::after {
+    display: none;
+  }
+  .menu-card {
+    max-width: 508px;
+    margin: 2.2rem auto 4rem;
+    padding: 2rem 2.25rem !important;
+    border: 0;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(32, 77, 130, .12) !important;
+  }
+  .btn-pill {
+    min-height: 64px;
+    border-radius: 10px !important;
+    padding: 14px 26px;
+    color: #06439a !important;
+    background: #fff !important;
+    border: 2px solid #1764ff !important;
+    font-size: 1.05rem;
+    font-weight: 700;
+    box-shadow: none !important;
+  }
+  .btn-pill:hover {
+    color: #fff !important;
+    background: #1764ff !important;
+  }
+  .menu-header > img { display: none; max-height: 155px !important; }
+  .menu-header .profile-button { display: none !important; }
+  .menu-header h4 { color: #123d78; font-size: 1.65rem; margin-top: 1.25rem !important; }
+  .menu-header > p { color: #607597 !important; font-size: 1.1rem; }
+  .organizador-menu,
+  .admin-menu {
+    background: #edf5ff;
+    border-radius: 20px;
+    padding: 1.35rem 1.2rem;
+    margin-top: 1rem;
+    box-shadow: none;
+  }
+  .organizador-menu h6,
+  .admin-menu h6 { color: #1764ff !important; }
+  .organizador-actions .btn,
+  .admin-actions .btn {
+    min-height: 58px;
+    border-radius: 10px !important;
+    color: #06439a !important;
+    background: transparent !important;
+    border: 2px solid #1764ff !important;
+  }
+  .organizador-actions .btn:hover,
+  .admin-actions .btn:hover {
+    color: #fff !important;
+    background: #1764ff !important;
+  }
+  .btn-danger.btn-pill {
+    color: #ed3d32 !important;
+    border-color: #ed3d32 !important;
+    background: #fff !important;
+  }
+  .btn-danger.btn-pill:hover {
+    color: #fff !important;
+    background: #ed3d32 !important;
+  }
   .admin-menu {
     background: rgba(220, 53, 69, 0.08);
     border-radius: 22px;
@@ -108,18 +174,30 @@
   .menu-header > img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
   .profile-button {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 46px !important;
-    height: 46px !important;
-    min-height: 46px !important;
+    top: -6px;
+    right: -4px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 70px !important;
+    height: 70px !important;
+    min-width: 70px !important;
+    min-height: 70px !important;
     padding: 0 !important;
-    border: 0 !important;
-    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #1764ff !important;
+    border-radius: 50% !important;
     background: #04047f !important;
     color: #fff !important;
     font-size: 1.35rem;
     box-shadow: 0 4px 12px rgba(4, 4, 127, 0.2);
+  }
+  .profile-button img {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    object-fit: cover;
   }
   .profile-button:hover { background: #02025c !important; transform: translateY(-1px); }
   .profile-badge {
@@ -250,6 +328,170 @@
     color: white;
     border-bottom: none;
   }
+  .terms-modal .modal-dialog {
+    max-width: 980px;
+    margin: 1.5rem auto;
+  }
+  .terms-modal .modal-content {
+    border: none;
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 24px 55px rgba(17, 41, 73, 0.24);
+  }
+  .terms-modal .modal-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1rem;
+    min-height: 92px;
+    padding: 0.8rem 1.1rem 0.8rem 1.1rem;
+    border-radius: 18px 18px 0 0;
+    background: linear-gradient(135deg, #0a3d73 0%, #0e4d8b 35%, #0c6bb7 100%);
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.15);
+  }
+  .terms-modal .terms-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: 100%;
+  }
+  .terms-modal .terms-brand-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    min-width: 64px;
+    height: 64px;
+    overflow: hidden;
+    background: transparent;
+  }
+  .terms-modal .terms-brand-mark img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+  .terms-modal .terms-brand-divider {
+    width: 2px;
+    height: 58px;
+    background: rgba(255, 255, 255, 0.5);
+  }
+  .terms-modal .terms-brand-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.12rem;
+    color: #ffffff;
+  }
+  .terms-modal .terms-brand-title h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 2vw, 2.3rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+  }
+  .terms-modal .terms-brand-title h3 {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+  .terms-modal .btn-close {
+    position: absolute;
+    right: 1rem;
+    top: 0.8rem;
+    filter: invert(1) grayscale(1);
+    opacity: 1;
+  }
+  .terms-modal .modal-body {
+    background: #edf4ff;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+  .terms-modal .terms-list {
+    display: flex;
+    flex-direction: column;
+    padding: 0 1.2rem 0.2rem;
+  }
+  .terms-modal .terms-item {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+    padding: 1.2rem 0 1rem;
+    border-top: 1px solid rgba(19, 64, 109, 0.18);
+  }
+  .terms-modal .terms-item:first-child {
+    border-top: none;
+  }
+  .terms-modal .terms-number {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.2rem;
+    color: #1a3a64;
+    font-size: clamp(2.2rem, 3vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.06em;
+    opacity: 0.92;
+  }
+  .terms-modal .terms-item-content {
+    padding-right: 0.7rem;
+  }
+  .terms-modal .terms-item-content h4 {
+    margin: 0 0 0.55rem;
+    color: #0f3d7f;
+    font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .terms-modal .terms-item-content p,
+  .terms-modal .terms-item-content li {
+    color: #203857;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    text-align: left;
+  }
+  .terms-modal .terms-item-content ul {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+  .terms-modal .terms-item-content li {
+    margin-bottom: 0.5rem;
+  }
+  .terms-modal .terms-item-content li:last-child {
+    margin-bottom: 0;
+  }
+  .terms-modal .terms-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 1.2rem 1.2rem;
+    background: #edf4ff;
+    border-top: none;
+  }
+  .terms-modal .terms-close-btn {
+    min-width: 150px;
+    min-height: 44px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #0e4d8b 0%, #0b3d76 100%);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+    box-shadow: 0 8px 18px rgba(10, 59, 112, 0.25);
+  }
+  .terms-modal .terms-close-btn:hover {
+    background: linear-gradient(180deg, #0f5ca6 0%, #0a3d76 100%);
+    color: #ffffff;
+  }
   .profile-modal-dialog { max-width: 620px; }
   .profile-modal-content { overflow: hidden; border: 0; border-radius: 18px; }
   .profile-modal-header {
@@ -282,6 +524,8 @@
   }
   .profile-camera img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
   .profile-modal-body h6 { margin: 0 0 14px; color: #202d45; font-size: 20px; font-weight: 800; }
+  .profile-name { margin: 0 0 5px !important; color: #123d78 !important; font-size: 23px !important; }
+  .profile-name-label { margin-bottom: 14px !important; color: #69758b !important; font-size: 14px !important; font-weight: 600 !important; }
   .profile-file-label {
     display: flex;
     align-items: center;
@@ -305,7 +549,278 @@
   .profile-modal-footer { justify-content: flex-end; gap: 12px; padding: 17px 25px; background: #fff; border-top: 1px solid #dfe6ef; }
   .profile-modal-footer .btn { min-width: 125px; min-height: 46px; border-radius: 9px !important; font-size: 15px; font-weight: 700; }
   .profile-modal-footer .btn-primary { background: #125bd0 !important; color: #fff !important; border-color: #125bd0 !important; }
+  .floating-notification-toggle {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    min-width: 128px;
+    height: 42px;
+    padding: 0 16px;
+    border: 1px solid #b9cfe9;
+    border-radius: 10px;
+    background: #fff;
+    color: #145da8;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(19, 61, 105, 0.12);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    appearance: none;
+    z-index: 1100;
+  }
+  .floating-notification-toggle:hover {
+    background: #f5f9ff;
+  }
+  .floating-notification-unread {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #e53935;
+  }
+  .floating-notifications-panel {
+    position: fixed;
+    right: 18px;
+    bottom: 80px;
+    width: min(390px, calc(100vw - 36px));
+    max-height: calc(100vh - 100px);
+    background: linear-gradient(180deg, #eef6ff 0%, #edf6ff 14%, #edf6ff 100%);
+    border-radius: 15px;
+    border: 1px solid #dfeafc;
+    box-shadow: 0 20px 40px rgba(19, 36, 63, 0.18);
+    overflow: hidden;
+    z-index: 1100;
+    display: none;
+  }
+  .floating-notifications-panel.open {
+    display: block;
+  }
+  .floating-notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, #0d5fa7, #0f7cc4 100%);
+    color: #fff;
+    min-height: 78px;
+    padding: 12px 14px;
+  }
+  .floating-notifications-header .title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .floating-notifications-header .event-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    border: 2px solid rgba(255,255,255,0.35);
+  }
+  .floating-notifications-header .header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .floating-notifications-header h3 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .floating-notifications-header p {
+    margin: 0;
+    font-size: 0.78rem;
+    opacity: 0.95;
+  }
+  .floating-notification-close {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.9);
+    color: #0a5caa;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .floating-notification-list {
+    padding: 10px 12px 12px;
+    background: #edf6ff;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+  }
+  .floating-notification-item {
+    display: grid;
+    grid-template-columns: 28px 40px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 0;
+    position: relative;
+  }
+  .floating-notification-item::before {
+    content: "";
+    position: absolute;
+    left: 13px;
+    top: 0;
+    bottom: -10px;
+    width: 2px;
+    background: rgba(42, 119, 200, 0.45);
+  }
+  .floating-notification-item:last-child::before {
+    bottom: 0;
+  }
+  .floating-notification-dot {
+    position: relative;
+    z-index: 1;
+    width: 13px;
+    height: 13px;
+    margin-left: 7px;
+    border-radius: 50%;
+    background: #2d9ae5;
+    box-shadow: 0 0 0 4px rgba(45, 154, 229, 0.18);
+  }
+  .floating-notification-badge {
+    position: relative;
+    z-index: 1;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: #f0f6ff;
+    border: 2px solid rgba(59, 122, 211, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    color: #1a6ad7;
+  }
+  .floating-notification-body {
+    position: relative;
+    z-index: 1;
+    background: rgba(255,255,255,0.28);
+    border-radius: 11px;
+    padding: 10px 11px 9px;
+    border: 1px solid rgba(113, 168, 232, 0.22);
+  }
+  .floating-notification-body strong {
+    display: block;
+    color: #0c2d59;
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+  }
+  .floating-notification-body p {
+    margin: 0;
+    color: #2e4968;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .floating-notification-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 8px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 9px;
+    border: 1px solid rgba(95, 140, 200, 0.22);
+    padding: 6px 8px;
+  }
+  .floating-notification-meta small {
+    color: #5a7290;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .floating-notification-mark {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(13, 86, 184, 0.42);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.55);
+    color: #0d6bd3;
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .floating-notification-empty {
+    padding: 14px 10px 16px;
+    color: #4b6484;
+    font-size: 0.82rem;
+    text-align: center;
+    background: rgba(255,255,255,0.22);
+    border-radius: 11px;
+  }
+  .floating-notification-footer {
+    background: rgba(255,255,255,0.22);
+    border-top: 1px solid rgba(106, 150, 203, 0.18);
+    padding: 10px 12px 12px;
+    text-align: center;
+    color: #4d6787;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .floating-notification-footer .info-icon {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #2d9ae5;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 11px;
+  }
+  .floating-notification-read-all {
+    border: 1px solid #9bbce0;
+    border-radius: 7px;
+    background: #fff;
+    color: #145da8;
+    padding: 5px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .floating-notification-read-all:hover {
+    background: #f5f9ff;
+  }
   @media (max-width: 640px) {
+    .floating-notifications-panel {
+      right: 10px;
+      bottom: 76px;
+      width: calc(100vw - 20px);
+    }
+    .floating-notifications-header h3 { font-size: 1.12rem; }
+    .floating-notifications-header p { font-size: 0.7rem; }
+    .floating-notification-item { grid-template-columns: 22px 34px minmax(0, 1fr); gap: 6px; }
+    .floating-notification-badge { width: 32px; height: 32px; font-size: 16px; }
+    .floating-notification-body { padding: 8px 9px; }
     .profile-modal-header { padding: 24px; }
     .profile-modal-heading h5 { font-size: 23px; }
     .profile-modal-heading p { font-size: 14px; }
@@ -332,7 +847,6 @@
           <span class="profile-notification-dot" aria-label="Tienes notificaciones nuevas" title="Tienes notificaciones nuevas"></span>
         {% endif %}
       </button>
-      <h4 class="mt-2">Gestión de eventos</h4>
       <p class="text-muted">Bienvenido, {{ usuario }}</p>
       {% if current_user.rol %}
       <p class="text-muted">
@@ -353,6 +867,8 @@
       <a class="btn btn-light btn-pill shadow-sm" href="{{ url_for('ver_eventos') }}">Ver Eventos</a>
       <a class="btn btn-light btn-pill shadow-sm" href="{{ url_for('mis_eventos') }}">Eventos Anotados</a>
       <a class="btn btn-light btn-pill shadow-sm" href="{{ url_for('ver_eventos') }}">Próximos Eventos</a>
+      <a class="btn btn-light btn-pill shadow-sm" href="{{ url_for('mis_notificaciones') }}">Mis Notificaciones{% if notificaciones_sin_leer > 0 %} ({{ notificaciones_sin_leer }}){% endif %}</a>
+      
       
       {% if current_user.rol == 'organizador' or current_user.rol == 'admin' %}
       <div class="organizador-menu">
@@ -380,11 +896,11 @@
 
       {% if solicitud_estado == 'pendiente' %}
       <div class="alert alert-danger text-center mb-0" role="alert">
-        Tu solicitud para ser organizador está a la espera de la aceptación del administrador.
+        Tu solicitud para ser organizador está a la espera de la aceptación del administrador
       </div>
       {% elif solicitud_estado == 'rechazada' %}
       <div class="alert alert-danger text-center mb-0" role="alert">
-        Tu solicitud para ser organizador fue rechazada por el administrador.
+        Tu solicitud para ser organizador fue rechazada por el administrador
       </div>
       {% endif %}
 
@@ -421,14 +937,16 @@
               <span></span>
             {% endif %}
           </div>
+          <h6 class="profile-name">{{ current_user.username or usuario }}</h6>
+          <div class="profile-name-label">Tu nombre</div>
           <h6>Foto de perfil</h6>
           <label for="fotoInput" class="profile-file-label">
             <span class="profile-file-button"><span class="profile-file-icon"></span> Elegir archivo</span>
             <span class="profile-file-name" id="profileFileName">Ningún archivo seleccionado</span>
             <input type="file" id="fotoInput" name="foto" class="profile-file-input" accept="image/jpeg,image/png,image/gif,image/webp">
           </label>
-          <a class="profile-notifications-link" href="{{ url_for('mis_notificaciones') }}">
-            <span class="profile-bell"></span>
+          <a class="profile-notifications-link" href="{{ url_for('mis_notificaciones') }}" onclick="window.location.href='{{ url_for('mis_notificaciones') }}'; return false;">
+  
             <span>Ver mis notificaciones{% if notificaciones_sin_leer > 0 %} ({{ notificaciones_sin_leer }} nuevas){% endif %}</span>
           </a>
         </div>
@@ -441,7 +959,78 @@
   </div>
 </div>
 
+{% if cambios_evento_sin_leer > 0 %}
+  <button type="button" class="floating-notification-toggle" id="toggleNotifications" aria-label="Mostrar notificaciones">
+    Notificaciones
+    <span class="floating-notification-unread" aria-label="Hay cambios de eventos sin leer"></span>
+  </button>
+{% endif %}
+
+<aside class="floating-notifications-panel" id="floatingNotificationsPanel" aria-live="polite">
+  <div class="floating-notifications-header">
+    <div class="title-group">
+      <div class="event-icon">🗓️</div>
+      <div class="header-text">
+        <h3>Cambios de evento</h3>
+        <p>Registro de modificaciones realizadas</p>
+      </div>
+    </div>
+    <button type="button" class="floating-notification-close" id="closeNotifications" aria-label="Cerrar notificaciones">×</button>
+  </div>
+
+  <div class="floating-notification-list">
+    {% if notificaciones_recientes %}
+      {% for notif in notificaciones_recientes %}
+        <div class="floating-notification-item">
+          <div class="floating-notification-dot"></div>
+          <div class="floating-notification-badge">🗓️</div>
+          <div class="floating-notification-body">
+            <strong>Sistema</strong>
+            <p>{{ notif.mensaje }}</p>
+            <div class="floating-notification-meta">
+              <small>🕒 {{ notif.created_at }}</small>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="floating-notification-empty">No hay cambios de evento recientes.</div>
+    {% endif %}
+  </div>
+
+  <div class="floating-notification-footer">
+    <span class="info-icon">i</span>
+    <span>Mostrando los últimos cambios registrados.</span>
+    {% if cambios_evento_sin_leer > 0 %}
+      <form method="post" action="{{ url_for('marcar_todos_los_cambios_evento_leidos') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="floating-notification-read-all">Leído a todo</button>
+      </form>
+    {% endif %}
+  </div>
+</aside>
+
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('toggleNotifications');
+    const panel = document.getElementById('floatingNotificationsPanel');
+    const closeBtn = document.getElementById('closeNotifications');
+
+    if (toggleBtn && panel) {
+      toggleBtn.addEventListener('click', () => panel.classList.toggle('open'));
+    }
+    if (closeBtn && panel) {
+      closeBtn.addEventListener('click', () => panel.classList.remove('open'));
+    }
+
+    if (new URLSearchParams(window.location.search).get('abrir_perfil') !== '1') return;
+    const perfilModal = document.getElementById('perfilModal');
+    if (perfilModal && window.bootstrap) {
+      bootstrap.Modal.getOrCreateInstance(perfilModal).show();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  });
+
   const profileFileInput = document.getElementById('fotoInput');
   const profileFileName = document.getElementById('profileFileName');
   if (profileFileInput && profileFileName) {
@@ -452,53 +1041,92 @@
 </script>
 
 <!-- Modal de Términos y Condiciones -->
-<div class="modal fade" id="terminosModal" tabindex="-1" aria-labelledby="terminosModalLabel" aria-hidden="true">
+<div class="modal fade terms-modal" id="terminosModal" tabindex="-1" aria-labelledby="terminosModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="terminosModalLabel">Términos y Condiciones de Uso - Sistema de Eventos UTN</h5>
+        <div class="terms-brand" aria-label="Header de términos y condiciones">
+          <div class="terms-brand-mark" aria-hidden="true">
+            <img src="{{ url_for('static', filename='img/LogoUTN_Gestion_De_Eventos.png') }}" alt="Logo UTN">
+          </div>
+          <div class="terms-brand-divider" aria-hidden="true"></div>
+          <div class="terms-brand-title">
+            <h2>UTN</h2>
+            <h3>Términos y condiciones de uso</h3>
+          </div>
+        </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <h5>1. Aceptación de los Términos</h5>
-        <p>Al utilizar esta plataforma, el usuario acepta cumplir con las reglas establecidas para la inscripción y participación en los eventos organizados por la UTN.</p>
+        <div class="terms-list">
+          <div class="terms-item">
+            <div class="terms-number">01</div>
+            <div class="terms-item-content">
+              <h4>Aceptación de los Términos</h4>
+              <p>Al utilizar esta plataforma, el usuario acepta cumplir con las reglas establecidas para la inscripción y participación en los eventos organizados por la UTN.</p>
+            </div>
+          </div>
 
-        <h5>2. Proceso de Inscripción y Datos del Usuario</h5>
-        <ul>
-          <li>Para inscribirse en un evento, el usuario debe proporcionar información verídica, incluyendo nombre, apellido, teléfono, correo electrónico (Gmail) y DNI.</li>
-          <li>El sistema validará la disponibilidad de cupos antes de confirmar cualquier inscripción.</li>
-          <li><strong>Restricción de duplicados:</strong> El sistema impedirá que un usuario se inscriba más de una vez en el mismo evento. Asimismo, no se permitirá la asistencia de "clones" o registros de identidad duplicados para un mismo evento.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">02</div>
+            <div class="terms-item-content">
+              <h4>Proceso de Inscripción y Datos del Usuario</h4>
+              <ul>
+                <li>Para inscribirse en un evento, el usuario debe proporcionar información verídica, incluyendo nombre, apellido, teléfono, correo electrónico (Gmail) y DNI.</li>
+                <li>El sistema validará la disponibilidad de cupos antes de confirmar cualquier inscripción.</li>
+                <li><strong>Restricción de duplicados:</strong> El sistema impedirá que un usuario se inscriba más de una vez en el mismo evento. Asimismo, no se permitirá la asistencia de "clones" o registros de identidad duplicados para un mismo evento.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>3. Confirmación y Acceso al Evento</h5>
-        <ul>
-          <li>Es responsabilidad del usuario poseer el comprobante de inscripción con su respectivo código QR, el cual podrá descargar desde la plataforma.</li>
-          <li>Para el ingreso al evento, el organizador verificará la identidad del asistente mediante el DNI o el escaneo del código QR.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">03</div>
+            <div class="terms-item-content">
+              <h4>Confirmación y Acceso al Evento</h4>
+              <ul>
+                <li>Es responsabilidad del usuario poseer el comprobante de inscripción con su respectivo código QR, el cual podrá descargar desde la plataforma.</li>
+                <li>Para el ingreso al evento, el organizador verificará la identidad del asistente mediante el DNI o el escaneo del código QR.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>4. Cancelaciones y Modificaciones</h5>
-        <ul>
-          <li><strong>Por el Usuario:</strong> El usuario tiene el derecho de cancelar su inscripción previamente realizada a través del sistema.</li>
-          <li><strong>Por la Administración:</strong> La UTN se reserva el derecho de suspender o reprogramar eventos. En tales casos, el sistema notificará automáticamente a los usuarios inscritos sobre cualquier modificación o cancelación.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">04</div>
+            <div class="terms-item-content">
+              <h4>Cancelaciones y Modificaciones</h4>
+              <ul>
+                <li><strong>Por el Usuario:</strong> El usuario tiene el derecho de cancelar su inscripción previamente realizada a través del sistema.</li>
+                <li><strong>Por la Administración:</strong> La UTN se reserva el derecho de suspender o reprogramar eventos. En tales casos, el sistema notificará automáticamente a los usuarios inscritos sobre cualquier modificación o cancelación.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>5. Disponibilidad y Funcionamiento Técnico</h5>
-        <ul>
-          <li>El sistema está diseñado para estar disponible las 24 horas del día y ser compatible con los navegadores Chrome, Edge, Firefox y Safari.</li>
-          <li>La plataforma es responsiva, permitiendo el acceso desde dispositivos móviles, tablets y computadoras.</li>
-          <li>Se busca un tiempo de carga óptimo no mayor a 5 segundos para garantizar una experiencia fluida.</li>
-        </ul>
+          <div class="terms-item">
+            <div class="terms-number">05</div>
+            <div class="terms-item-content">
+              <h4>Disponibilidad y Funcionamiento Técnico</h4>
+              <ul>
+                <li>El sistema está diseñado para estar disponible las 24 horas del día y ser compatible con los navegadores Chrome, Edge, Firefox y Safari.</li>
+                <li>La plataforma es responsiva, permitiendo el acceso desde dispositivos móviles, tablets y computadoras.</li>
+                <li>Se busca un tiempo de carga óptimo no mayor a 5 segundos para garantizar una experiencia fluida.</li>
+              </ul>
+            </div>
+          </div>
 
-        <h5>6. Privacidad y Seguridad de Datos</h5>
-        <ul>
-          <li>Toda la información personal proporcionada por los usuarios será almacenada de forma segura y codificada.</li>
-          <li>Las funciones de administración están protegidas mediante autenticación obligatoria para asegurar que solo personal autorizado gestione los eventos y las listas de inscriptos.</li>
-        </ul>
-        
-        
+          <div class="terms-item">
+            <div class="terms-number">06</div>
+            <div class="terms-item-content">
+              <h4>Privacidad y Seguridad de Datos</h4>
+              <ul>
+                <li>Toda la información personal proporcionada por los usuarios será almacenada de forma segura y codificada.</li>
+                <li>Las funciones de administración están protegidas mediante autenticación obligatoria para asegurar que solo personal autorizado gestione los eventos y las listas de inscriptos.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      <div class="modal-footer terms-footer">
+        <button type="button" class="btn terms-close-btn" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>

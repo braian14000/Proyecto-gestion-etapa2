@@ -1,6 +1,5 @@
 class Config:
     SECRET_KEY = 'B!1w8NAt1T^%kvhUI*S^'
-    CAFECITO_URL = 'https://cafecito.app/'
 
 
 class DevelopmentConfig(Config):

@@ -8,7 +8,7 @@
   .map-picker { width: 100%; height: 320px; margin-top: 8px; border: 1px solid #cfd1e8; border-radius: 8px; overflow: hidden; }
   .map-help { color: #596487; font-size: .85rem; }
   body {
-    background: #eef0fa;
+    background: #eef6ff !important;
     color: #172653;
   }
 
@@ -175,13 +175,6 @@
 <div class="event-page">
   <div class="event-card card">
     <div class="card-body">
-      <div class="event-heading">
-        <div>
-          <h1>Crear evento</h1>
-          <p>Panel propio para organizadores.</p>
-        </div>
-      </div>
-
       {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="mb-3">

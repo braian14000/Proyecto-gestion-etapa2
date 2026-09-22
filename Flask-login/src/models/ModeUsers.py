@@ -68,20 +68,24 @@ class ModelUser():
             raise Exception(ex)
     
     @classmethod
-    def get_all_users(cls, db):
-        """Obtiene todos los usuarios de la base de datos"""
+    def get_all_users(cls, db, dni=None):
+        """Obtiene todos los usuarios, opcionalmente filtrados por DNI."""
         try:
             cursor = db.connection.cursor()
-            # Usar id DESC para ordenar por ID descendente en lugar de created_at
-            sql = "SELECT id, username, email, telefono, dni, rol FROM `user` ORDER BY id DESC"
-            cursor.execute(sql)
+            sql = "SELECT id, username, email, telefono, dni, foto_perfil, rol FROM `user`"
+            params = ()
+            if dni:
+                sql += " WHERE dni = %s"
+                params = (dni,)
+            sql += " ORDER BY id DESC"
+            cursor.execute(sql, params)
             rows = cursor.fetchall()
             
             users = []
             if rows:
                 for row in rows:
-                    rol = (row[5] or 'estudiante').strip().lower() if len(row) > 5 else 'estudiante'
-                    user = User(row[0], row[1], row[2], None, row[3], row[4], rol)
+                    rol = (row[6] or 'estudiante').strip().lower() if len(row) > 6 else 'estudiante'
+                    user = User(row[0], row[1], row[2], None, row[3], row[4], rol, row[5])
                     users.append(user)
             
             return users

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Asistente del sistema</title>
+  <desc id="desc">Avatar de un asistente robot azul con un globo de mensaje</desc>
+  <circle cx="64" cy="64" r="60" fill="#3aa4cc"/>
+  <path d="M91 30h25a8 8 0 0 1 8 8v19a8 8 0 0 1-8 8H99l-11 9 3-9h-1a8 8 0 0 1-8-8V38a8 8 0 0 1 8-8z" fill="#fff" stroke="#102448" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="96" cy="48" r="3.5" fill="#102448"/>
+  <circle cx="106" cy="48" r="3.5" fill="#102448"/>
+  <circle cx="116" cy="48" r="3.5" fill="#102448"/>
+  <path d="M35 48a29 29 0 0 1 58 0v23a10 10 0 0 1-10 10H45a10 10 0 0 1-10-10z" fill="#f2f5f8" stroke="#d5dce5" stroke-width="3"/>
+  <path d="M43 51a21 21 0 0 1 42 0v18a6 6 0 0 1-6 6H49a6 6 0 0 1-6-6z" fill="#122650"/>
+  <circle cx="56" cy="61" r="4" fill="#16dce9"/>
+  <circle cx="72" cy="61" r="4" fill="#16dce9"/>
+  <path d="M58 68c4 5 8 5 12 0" fill="none" stroke="#16dce9" stroke-width="3" stroke-linecap="round"/>
+  <path d="M48 82h32l7 28H41z" fill="#f2f5f8" stroke="#d5dce5" stroke-width="3"/>
+  <circle cx="64" cy="97" r="6" fill="#d5dce5"/>
+  <path d="M31 42V29M97 42V29" stroke="#f2f5f8" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="31" cy="25" r="6" fill="#f2f5f8" stroke="#d5dce5" stroke-width="2"/>
+  <circle cx="97" cy="25" r="6" fill="#f2f5f8" stroke="#d5dce5" stroke-width="2"/>
+</svg>

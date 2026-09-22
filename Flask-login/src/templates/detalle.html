@@ -10,7 +10,7 @@
     <style>#event-detail-map { height: 380px; border-radius: 8px; margin-top: 12px; }</style>
     {% endif %}
 </head>
-<body>
+<body style="background-color: #eef6ff;">
     <div class="container">
         {% if origin != 'mis_eventos' %}
             <a href="{{ url_for('home') }}" style="display: inline-block; margin-bottom: 30px; color: #2c3e50;">← Volver al inicio</a>
@@ -80,7 +80,7 @@
                     <summary style="padding: 10px; background: #fff; border-radius: 5px; font-weight: bold; color: #0d6efd; cursor: pointer;">
                          Contactar al organizador
                     </summary>
-                    <form method="post" action="{{ url_for('enviar_contacto_organizador') }}" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ccc;">
+                    <form method="post" action="{{ url_for('enviar_contacto_organizador') }}" onsubmit="this.querySelector('button[type=submit]').disabled = true;" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ccc;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="evento_id" value="{{ evento.id }}">
                         <input type="hidden" name="organizador_id" value="{{ evento.organizador.id }}">
@@ -138,6 +138,11 @@
                 {% endif %}
             {% elif registrado and not evento.finalizado %}
                 <div class="flash success" style="margin-top: 20px;">Ya estás anotado en este evento.</div>
+                <div style="margin-top: 15px;">
+                    <a class="btn btn-primary" href="{{ url_for('mis_notificaciones') }}">
+                        Ver mis notificaciones
+                    </a>
+                </div>
             {% endif %}
 
             {% if puede_editar_ubicacion %}

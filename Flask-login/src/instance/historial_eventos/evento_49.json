@@ -1,0 +1,17 @@
+{
+  "evento": {
+    "id": 49,
+    "titulo": "evento prueba",
+    "fecha": "2026-03-12",
+    "hora": "12:31:00",
+    "descripcion": "q",
+    "lugar": "1º de mayo",
+    "capacidad_maxima": 20,
+    "finalizado": false,
+    "categoria": "General",
+    "created_by": 13,
+    "created_at": "2026-09-22 09:15:44"
+  },
+  "inscriptos": [],
+  "guardado_en": "2026-09-22T09:18:47"
+}
