@@ -47,6 +47,7 @@ CREATE TABLE `event` (
   `titulo` VARCHAR(200) NOT NULL,
   `fecha` DATE NOT NULL,
   `hora` TIME DEFAULT NULL,
+  `hora_fin` TIME DEFAULT NULL,
   `descripcion` TEXT,
   `lugar` VARCHAR(200),
   `capacidad_maxima` INT NOT NULL,
