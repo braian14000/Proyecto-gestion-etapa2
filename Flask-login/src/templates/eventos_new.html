@@ -84,7 +84,7 @@
             <div class="tarjeta-evento">
                 <h4>{{ evento.titulo }}</h4>
                 <p><strong>Fecha:</strong> {{ evento.fecha }}</p>
-                <p><strong>Horario:</strong> {{ evento.hora or 'No definido' }}</p>
+                <p><strong>Horario:</strong> {{ evento.hora or 'No definido' }}{% if evento.hora_fin %} a {{ evento.hora_fin }}{% endif %}</p>
                 <p style="color: #999; font-size: 13px;">{{ evento.lugar }}</p>
                 <p><strong>Cupo:</strong> {{ evento.capacidad_maxima }}</p>
                 {% if evento.categoria %}

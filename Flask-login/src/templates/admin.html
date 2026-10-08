@@ -126,6 +126,10 @@
             <input type="time" class="form-control" name="hora" required>
           </div>
           <div class="col-md-4">
+            <label class="form-label">Finaliza</label>
+            <input type="time" class="form-control" name="hora_fin" required>
+          </div>
+          <div class="col-md-4">
             <label class="form-label">Ubicación</label>
             <input type="text" class="form-control" name="lugar" placeholder="Ubicación" required>
           </div>
@@ -187,6 +191,21 @@
   });
 </script>
 <script>
+  const startTimeInput = document.querySelector('[name="hora"]');
+  const endTimeInput = document.querySelector('[name="hora_fin"]');
+  if (startTimeInput && endTimeInput) {
+    const validateEventTimes = () => {
+      endTimeInput.min = startTimeInput.value;
+      endTimeInput.setCustomValidity(
+        endTimeInput.value && endTimeInput.value <= startTimeInput.value
+          ? 'La hora de finalización debe ser posterior al inicio.'
+          : ''
+      );
+    };
+    startTimeInput.addEventListener('input', validateEventTimes);
+    endTimeInput.addEventListener('input', validateEventTimes);
+  }
+
   const eventMap = L.map('event-map').setView([-31.42497, -62.08404], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,

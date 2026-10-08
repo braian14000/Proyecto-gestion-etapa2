@@ -215,6 +215,14 @@
           </div>
           <div class="col-md-4">
             <div class="event-field">
+              <label for="hora_fin">Finaliza</label>
+              <div class="event-input-wrap">
+                <input type="time" id="hora_fin" name="hora_fin" required>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="event-field">
               <label for="lugar">Lugar</label>
               <div class="event-input-wrap">
                 <input type="text" id="lugar" name="lugar" placeholder="Ej: Auditorio, Online, etc." required>
@@ -277,6 +285,21 @@
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+  const startTimeInput = document.querySelector('[name="hora"]');
+  const endTimeInput = document.querySelector('[name="hora_fin"]');
+  if (startTimeInput && endTimeInput) {
+    const validateEventTimes = () => {
+      endTimeInput.min = startTimeInput.value;
+      endTimeInput.setCustomValidity(
+        endTimeInput.value && endTimeInput.value <= startTimeInput.value
+          ? 'La hora de finalización debe ser posterior al inicio.'
+          : ''
+      );
+    };
+    startTimeInput.addEventListener('input', validateEventTimes);
+    endTimeInput.addEventListener('input', validateEventTimes);
+  }
+
   const eventMap = L.map('event-map').setView([-31.42497, -62.08404], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,

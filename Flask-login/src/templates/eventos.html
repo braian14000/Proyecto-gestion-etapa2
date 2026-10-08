@@ -102,6 +102,14 @@
                 <input type="search" id="busqueda" name="busqueda" value="{{ busqueda or '' }}" placeholder="Nombre del evento">
             </div>
             <div>
+                <label for="tipo_eventos">Ver eventos</label>
+                <select id="tipo_eventos" name="tipo_eventos">
+                    <option value="todos" {% if tipo_eventos == 'todos' %}selected{% endif %}>Todos los eventos</option>
+                    <option value="esta_semana" {% if tipo_eventos == 'esta_semana' %}selected{% endif %}>Esta semana</option>
+                    <option value="proximos" {% if tipo_eventos == 'proximos' %}selected{% endif %}>Próximos eventos</option>
+                </select>
+            </div>
+            <div>
                 <label for="categoria">Categoría</label>
                 <select id="categoria" name="categoria">
                     <option value="">Todas</option>
@@ -124,6 +132,7 @@
                     <option value="cercanos" {% if orden_ubicacion == 'cercanos' %}selected{% endif %}>Más cercanos</option>
                 </select>
             </div>
+            
             <input type="hidden" id="latitud-usuario" name="latitud" value="{{ user_latitude or '' }}">
             <input type="hidden" id="longitud-usuario" name="longitud" value="{{ user_longitude or '' }}">
             <div class="acciones-filtros">
@@ -143,8 +152,11 @@
                 {% endif %}
                 <h4>{{ evento.titulo }}</h4>
                 <p><strong>Fecha:</strong> {{ evento.fecha }}</p>
-                <p><strong>Horario:</strong> {{ evento.hora or 'No definido' }}</p>
+                <p><strong>Horario:</strong> {{ evento.hora or 'No definido' }}{% if evento.hora_fin %} a {{ evento.hora_fin }}{% endif %}</p>
                 <p style="color: #999; font-size: 13px;">{{ evento.lugar }}</p>
+                {% if is_admin %}
+                <p><strong>Organizador:</strong> {{ evento.organizador or 'Sin organizador registrado' }}</p>
+                {% endif %}
                 {% if evento.distancia_km is defined %}
                 <p><strong>Distancia:</strong> {{ evento.distancia_km }} km</p>
                 {% endif %}

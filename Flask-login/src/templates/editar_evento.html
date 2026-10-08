@@ -74,6 +74,10 @@
                                 <input type="time" id="hora" name="hora" value="{{ evento.hora }}" required>
                             </div>
                             <div class="form-group">
+                                <label class="form-label" for="hora_fin">Finaliza</label>
+                                <input type="time" id="hora_fin" name="hora_fin" value="{{ evento.hora_fin or '' }}" required>
+                            </div>
+                            <div class="form-group">
                                 <label class="form-label" for="lugar">Ubicación</label>
                                 <input type="text" id="lugar" name="lugar" placeholder="Ubicación" value="{{ evento.lugar }}" required>
                             </div>
@@ -117,6 +121,21 @@
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        const startTimeInput = document.querySelector('[name="hora"]');
+        const endTimeInput = document.querySelector('[name="hora_fin"]');
+        if (startTimeInput && endTimeInput) {
+            const validateEventTimes = () => {
+                endTimeInput.min = startTimeInput.value;
+                endTimeInput.setCustomValidity(
+                    endTimeInput.value && endTimeInput.value <= startTimeInput.value
+                        ? 'La hora de finalización debe ser posterior al inicio.'
+                        : ''
+                );
+            };
+            startTimeInput.addEventListener('input', validateEventTimes);
+            endTimeInput.addEventListener('input', validateEventTimes);
+        }
+
         const latitudeInput = document.querySelector('[name="latitud"]');
         const longitudeInput = document.querySelector('[name="longitud"]');
         const defaultPosition = [-31.42497, -62.08404];

@@ -3,6 +3,11 @@ from flask_mysqldb import MySQL
 from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash
+from database import conectar
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 import qrcode
 import json
@@ -50,6 +55,7 @@ def ensure_event_table_has_capacity():
                       `titulo` VARCHAR(200) NOT NULL,
                       `fecha` DATE NOT NULL,
                       `hora` TIME NOT NULL DEFAULT '09:00:00',
+                      `hora_fin` TIME NULL,
                       `descripcion` TEXT,
                       `lugar` VARCHAR(200),
                       `capacidad_maxima` INT NOT NULL DEFAULT 1,
@@ -79,6 +85,12 @@ def ensure_event_table_has_capacity():
                 cursor.execute("ALTER TABLE `event` ADD COLUMN `hora` TIME NOT NULL DEFAULT '09:00:00'")
                 db.connection.commit()
                 print("[INFO] Se agregó la columna hora a la tabla event.")
+
+            cursor.execute("SHOW COLUMNS FROM `event` LIKE 'hora_fin'")
+            if cursor.fetchone() is None:
+                cursor.execute("ALTER TABLE `event` ADD COLUMN `hora_fin` TIME NULL")
+                db.connection.commit()
+                print("[INFO] Se agregó la columna hora_fin a la tabla event.")
 
             cursor.execute("SHOW COLUMNS FROM `event` LIKE 'finalizado'")
             if cursor.fetchone() is None:
@@ -639,6 +651,37 @@ def process_pending_event_reminders():
         return 0
 
 
+def finalize_due_events():
+    """Marca como finalizados y archiva los eventos cuyo horario ya terminó."""
+    try:
+        cursor = db.connection.cursor()
+        cursor.execute(
+            """
+            SELECT id
+            FROM event
+            WHERE finalizado = 0
+              AND hora_fin IS NOT NULL
+              AND TIMESTAMP(fecha, hora_fin) <= NOW()
+            ORDER BY id
+            """
+        )
+        event_ids = [row[0] for row in cursor.fetchall()]
+
+        for event_id in event_ids:
+            cursor.execute("UPDATE event SET finalizado = 1 WHERE id = %s", (event_id,))
+            archive_event_history(event_id)
+
+        if event_ids:
+            db.connection.commit()
+            print(f"[INFO] Se finalizaron automáticamente {len(event_ids)} eventos")
+
+        return len(event_ids)
+    except Exception as ex:
+        db.connection.rollback()
+        print(f"[ERROR] Error finalizando eventos automáticamente: {ex}")
+        return 0
+
+
 def ensure_followers_table():
     try:
         with app.app_context():
@@ -871,25 +914,37 @@ def get_pending_organizer_requests():
 
 def get_events_from_db():
     try:
+        finalize_due_events()
         cursor = db.connection.cursor()
-        cursor.execute("SELECT id, titulo, fecha, hora, descripcion, lugar, capacidad_maxima, finalizado, categoria, latitud, longitud, imagen FROM event WHERE finalizado = 0 AND fecha >= CURDATE() ORDER BY fecha, hora")
+        cursor.execute("""
+            SELECT e.id, e.titulo, e.fecha, e.hora, e.hora_fin, e.descripcion, e.lugar,
+                   e.capacidad_maxima, e.finalizado, e.categoria, e.latitud,
+                   e.longitud, e.imagen, COALESCE(u.username, u.email)
+            FROM event e
+            LEFT JOIN `user` u ON u.id = e.created_by
+            WHERE e.finalizado = 0 AND e.fecha >= CURDATE()
+            ORDER BY e.fecha, e.hora
+        """)
         rows = cursor.fetchall()
         events = []
         for r in rows:
             hora = r[3].strftime('%H:%M') if hasattr(r[3], 'strftime') else str(r[3] or '00:00')
+            hora_fin = r[4].strftime('%H:%M') if hasattr(r[4], 'strftime') else (str(r[4])[:5] if r[4] else None)
             events.append({
                 'id': r[0],
                 'titulo': r[1],
                 'fecha': r[2].strftime('%Y-%m-%d') if hasattr(r[2], 'strftime') else str(r[2]),
                 'hora': hora,
-                'descripcion': r[4],
-                'lugar': r[5],
-                'capacidad_maxima': int(r[6]) if r[6] is not None else 0,
-                'finalizado': bool(r[7]),
-                'categoria': r[8] or 'General',
-                'latitud': float(r[9]) if r[9] is not None else None,
-                'longitud': float(r[10]) if r[10] is not None else None,
-                'imagen': r[11]
+                'hora_fin': hora_fin,
+                'descripcion': r[5],
+                'lugar': r[6],
+                'capacidad_maxima': int(r[7]) if r[7] is not None else 0,
+                'finalizado': bool(r[8]),
+                'categoria': r[9] or 'General',
+                'latitud': float(r[10]) if r[10] is not None else None,
+                'longitud': float(r[11]) if r[11] is not None else None,
+                'imagen': r[12],
+                'organizador': r[13]
             })
         return events
     except Exception:
@@ -911,9 +966,10 @@ def distance_in_km(latitude_a, longitude_a, latitude_b, longitude_b):
 
 def get_events_created_by_user(db_connection, user_id):
     try:
+        finalize_due_events()
         cursor = db_connection.connection.cursor()
         cursor.execute(
-            "SELECT id, titulo, fecha, hora, descripcion, lugar, capacidad_maxima, finalizado, categoria, imagen FROM event WHERE created_by = %s ORDER BY fecha DESC, hora DESC, id DESC",
+            "SELECT id, titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad_maxima, finalizado, categoria, imagen FROM event WHERE created_by = %s ORDER BY fecha DESC, hora DESC, id DESC",
             (user_id,)
         )
         rows = cursor.fetchall()
@@ -924,17 +980,19 @@ def get_events_created_by_user(db_connection, user_id):
             cursor2.execute("SELECT COUNT(*) FROM registrados WHERE evento_id = %s", (evento_id,))
             inscritos_count = cursor2.fetchone()[0]
             hora = r[3].strftime('%H:%M') if hasattr(r[3], 'strftime') else str(r[3] or '00:00')
+            hora_fin = r[4].strftime('%H:%M') if hasattr(r[4], 'strftime') else (str(r[4])[:5] if r[4] else None)
             events.append({
                 'id': evento_id,
                 'titulo': r[1],
                 'fecha': r[2].strftime('%Y-%m-%d') if hasattr(r[2], 'strftime') else str(r[2]),
                 'hora': hora,
-                'descripcion': r[4],
-                'lugar': r[5],
-                'capacidad_maxima': int(r[6]) if r[6] is not None else 0,
-                'finalizado': bool(r[7]),
-                'categoria': r[8] or 'General',
-                'imagen': r[9],
+                'hora_fin': hora_fin,
+                'descripcion': r[5],
+                'lugar': r[6],
+                'capacidad_maxima': int(r[7]) if r[7] is not None else 0,
+                'finalizado': bool(r[8]),
+                'categoria': r[9] or 'General',
+                'imagen': r[10],
                 'inscritos_count': inscritos_count
             })
         return events
@@ -943,10 +1001,11 @@ def get_events_created_by_user(db_connection, user_id):
 
 def get_event_from_db(event_id):
     try:
+        finalize_due_events()
         cursor = db.connection.cursor()
         cursor.execute(
             """
-            SELECT e.id, e.titulo, e.fecha, e.hora, e.descripcion, e.lugar, e.capacidad_maxima, e.finalizado, e.categoria, e.created_by, e.latitud, e.longitud, e.imagen,
+            SELECT e.id, e.titulo, e.fecha, e.hora, e.hora_fin, e.descripcion, e.lugar, e.capacidad_maxima, e.finalizado, e.categoria, e.created_by, e.latitud, e.longitud, e.imagen,
                    (SELECT COUNT(*) FROM registrados r WHERE r.evento_id = e.id) AS inscritos_count
             FROM event e
             WHERE e.id = %s
@@ -957,6 +1016,7 @@ def get_event_from_db(event_id):
         if not r:
             return None
         hora = r[3].strftime('%H:%M') if hasattr(r[3], 'strftime') else str(r[3] or '00:00')
+        hora_fin = r[4].strftime('%H:%M') if hasattr(r[4], 'strftime') else (str(r[4])[:5] if r[4] else None)
         
         # Obtener información del organizador
         organizador = None
@@ -984,16 +1044,17 @@ def get_event_from_db(event_id):
             'titulo': r[1],
             'fecha': r[2].strftime('%Y-%m-%d') if hasattr(r[2], 'strftime') else str(r[2]),
             'hora': hora,
-            'descripcion': r[4],
-            'lugar': r[5],
-            'capacidad_maxima': int(r[6]) if r[6] is not None else 0,
-            'finalizado': bool(r[7]),
-            'categoria': r[8] or 'General',
-            'created_by': r[9],
-            'latitud': float(r[10]) if r[10] is not None else None,
-            'longitud': float(r[11]) if r[11] is not None else None,
-            'imagen': r[12],
-            'inscritos_count': int(r[13]) if r[13] is not None else 0,
+            'hora_fin': hora_fin,
+            'descripcion': r[5],
+            'lugar': r[6],
+            'capacidad_maxima': int(r[7]) if r[7] is not None else 0,
+            'finalizado': bool(r[8]),
+            'categoria': r[9] or 'General',
+            'created_by': r[10],
+            'latitud': float(r[11]) if r[11] is not None else None,
+            'longitud': float(r[12]) if r[12] is not None else None,
+            'imagen': r[13],
+            'inscritos_count': int(r[14]) if r[14] is not None else 0,
             'organizador': organizador
         }
     except Exception:
@@ -1452,6 +1513,7 @@ def admin_dashboard():
         titulo = request.form.get('titulo', '').strip()
         fecha = request.form.get('fecha', '').strip()
         hora = request.form.get('hora', '').strip()
+        hora_fin = request.form.get('hora_fin', '').strip()
         descripcion = request.form.get('descripcion', '').strip()
         lugar = request.form.get('lugar', '').strip()
         latitud = request.form.get('latitud', '').strip()
@@ -1466,7 +1528,7 @@ def admin_dashboard():
 
         try:
             capacidad = int(capacidad_maxima)
-            if not titulo or not fecha or not hora or not descripcion or not lugar or capacidad <= 0:
+            if not titulo or not fecha or not hora or not hora_fin or hora_fin <= hora or not descripcion or not lugar or capacidad <= 0:
                 raise ValueError
             latitud = float(latitud) if latitud else None
             longitud = float(longitud) if longitud else None
@@ -1475,7 +1537,7 @@ def admin_dashboard():
             if longitud is not None and not -180 <= longitud <= 180:
                 raise ValueError
         except ValueError:
-            flash('Completá fecha, horario, título, lugar, descripción y una capacidad máxima válida.', 'error')
+            flash('Completá fecha, horario de inicio y finalización, título, lugar, descripción y una capacidad máxima válida.', 'error')
             return render_template('admin.html')
 
         try:
@@ -1483,19 +1545,19 @@ def admin_dashboard():
             user_id = getattr(current_user, 'id', None)
             if user_id in (None, 0):
                 cursor.execute(
-                    "INSERT INTO event (titulo, fecha, hora, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
+                    "INSERT INTO event (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
                 )
             else:
                 try:
                     cursor.execute(
-                        "INSERT INTO event (titulo, fecha, hora, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                        (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen, user_id)
+                        "INSERT INTO event (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                        (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen, user_id)
                     )
                 except Exception:
                     cursor.execute(
-                        "INSERT INTO event (titulo, fecha, hora, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                        (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
+                        "INSERT INTO event (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                        (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
                     )
             db.connection.commit()
         except Exception as ex:
@@ -1517,6 +1579,7 @@ def crear_evento_organizador():
         titulo = request.form.get('titulo', '').strip()
         fecha = request.form.get('fecha', '').strip()
         hora = request.form.get('hora', '').strip()
+        hora_fin = request.form.get('hora_fin', '').strip()
         descripcion = request.form.get('descripcion', '').strip()
         lugar = request.form.get('lugar', '').strip()
         latitud = request.form.get('latitud', '').strip()
@@ -1531,7 +1594,7 @@ def crear_evento_organizador():
 
         try:
             capacidad = int(capacidad_maxima)
-            if not titulo or not fecha or not hora or not descripcion or not lugar or capacidad <= 0:
+            if not titulo or not fecha or not hora or not hora_fin or hora_fin <= hora or not descripcion or not lugar or capacidad <= 0:
                 raise ValueError
             latitud = float(latitud) if latitud else None
             longitud = float(longitud) if longitud else None
@@ -1540,7 +1603,7 @@ def crear_evento_organizador():
             if longitud is not None and not -180 <= longitud <= 180:
                 raise ValueError
         except ValueError:
-            flash('Completá fecha, horario, lugar, descripción y una capacidad máxima válida.', 'error')
+            flash('Completá fecha, horario de inicio y finalización, lugar, descripción y una capacidad máxima válida.', 'error')
             return render_template('crear_evento_organizador.html')
 
         try:
@@ -1548,19 +1611,19 @@ def crear_evento_organizador():
             user_id = getattr(current_user, 'id', None)
             if user_id in (None, 0):
                 cursor.execute(
-                    "INSERT INTO event (titulo, fecha, hora, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
+                    "INSERT INTO event (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
                 )
             else:
                 try:
                     cursor.execute(
-                        "INSERT INTO event (titulo, fecha, hora, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                        (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen, user_id)
+                        "INSERT INTO event (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                        (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen, user_id)
                     )
                 except Exception:
                     cursor.execute(
-                        "INSERT INTO event (titulo, fecha, hora, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                        (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
+                        "INSERT INTO event (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad_maxima, categoria, latitud, longitud, imagen) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                        (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen)
                     )
             db.connection.commit()
             flash('Evento creado correctamente.', 'success')
@@ -1781,6 +1844,7 @@ def editar_evento(evento_id):
         titulo = request.form.get('titulo', '').strip()
         fecha = request.form.get('fecha', '').strip()
         hora = request.form.get('hora', '').strip()
+        hora_fin = request.form.get('hora_fin', '').strip()
         descripcion = request.form.get('descripcion', '').strip()
         lugar = request.form.get('lugar', '').strip()
         latitud = request.form.get('latitud', '').strip()
@@ -1790,7 +1854,7 @@ def editar_evento(evento_id):
 
         try:
             capacidad = int(capacidad_maxima)
-            if not titulo or not fecha or not hora or not descripcion or not lugar or capacidad <= 0:
+            if not titulo or not fecha or not hora or not hora_fin or hora_fin <= hora or not descripcion or not lugar or capacidad <= 0:
                 raise ValueError
             latitud = float(latitud) if latitud else None
             longitud = float(longitud) if longitud else None
@@ -1799,7 +1863,7 @@ def editar_evento(evento_id):
             if longitud is not None and not -180 <= longitud <= 180:
                 raise ValueError
         except ValueError:
-            flash('La fecha, horario, descripción, lugar y capacidad máxima son obligatorios.', 'error')
+            flash('La fecha, el horario de inicio y finalización, la descripción, el lugar y la capacidad máxima son obligatorios. La finalización debe ser posterior al inicio.', 'error')
             return render_template('editar_evento.html', evento=evento)
 
         try:
@@ -1813,8 +1877,8 @@ def editar_evento(evento_id):
             hora_anterior = str(evento.get('hora', '')).strip()
             cursor = db.connection.cursor()
             cursor.execute(
-                "UPDATE event SET titulo = %s, fecha = %s, hora = %s, descripcion = %s, lugar = %s, capacidad_maxima = %s, categoria = %s, latitud = %s, longitud = %s, imagen = %s WHERE id = %s",
-                (titulo, fecha, hora, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen, evento_id)
+                "UPDATE event SET titulo = %s, fecha = %s, hora = %s, hora_fin = %s, descripcion = %s, lugar = %s, capacidad_maxima = %s, categoria = %s, latitud = %s, longitud = %s, imagen = %s WHERE id = %s",
+                (titulo, fecha, hora, hora_fin, descripcion, lugar, capacidad, categoria, latitud, longitud, imagen, evento_id)
             )
             db.connection.commit()
 
@@ -1904,6 +1968,7 @@ def ver_eventos():
     eventos = get_events_from_db()
     busqueda = request.args.get('busqueda', '').strip()
     categoria_seleccionada = request.args.get('categoria', '').strip()
+    tipo_eventos = request.args.get('tipo_eventos', 'todos').strip()
     orden_fecha = request.args.get('orden_fecha', 'recientes').strip()
     orden_ubicacion = request.args.get('orden_ubicacion', '').strip()
     user_latitude = request.args.get('latitud', '').strip()
@@ -1920,6 +1985,7 @@ def ver_eventos():
         user_latitude = None
         user_longitude = None
 
+    # Filtrar por búsqueda
     if busqueda:
         busqueda_normalizada = busqueda.casefold()
         eventos = [
@@ -1927,12 +1993,50 @@ def ver_eventos():
             if busqueda_normalizada in evento.get('titulo', '').casefold()
         ]
 
+    # Filtrar por categoría
     if categoria_seleccionada:
         eventos = [
             evento for evento in eventos
             if evento.get('categoria', 'General') == categoria_seleccionada
         ]
 
+    # Filtrar por tipo de eventos (todos, esta semana, próximos)
+    hoy = date.today()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())  # Lunes de la semana actual
+    fin_semana = inicio_semana + timedelta(days=6)  # Domingo de la semana actual
+    
+    if tipo_eventos == 'esta_semana':
+        eventos_filtrados = []
+        for evento in eventos:
+            try:
+                if isinstance(evento.get('fecha'), str):
+                    fecha_evento = datetime.strptime(evento.get('fecha'), '%Y-%m-%d').date()
+                else:
+                    fecha_evento = evento.get('fecha')
+                
+                if inicio_semana <= fecha_evento <= fin_semana and fecha_evento >= hoy:
+                    eventos_filtrados.append(evento)
+            except (ValueError, TypeError):
+                pass
+        eventos = eventos_filtrados
+    elif tipo_eventos == 'proximos':
+        # Próximos 30 días a partir de hoy
+        fin_proximos = hoy + timedelta(days=30)
+        eventos_filtrados = []
+        for evento in eventos:
+            try:
+                if isinstance(evento.get('fecha'), str):
+                    fecha_evento = datetime.strptime(evento.get('fecha'), '%Y-%m-%d').date()
+                else:
+                    fecha_evento = evento.get('fecha')
+                
+                if hoy <= fecha_evento <= fin_proximos:
+                    eventos_filtrados.append(evento)
+            except (ValueError, TypeError):
+                pass
+        eventos = eventos_filtrados
+
+    # Filtrar por cercanía de ubicación
     if orden_ubicacion == 'cercanos' and user_latitude is not None and user_longitude is not None:
         eventos_cercanos = []
         for evento in eventos:
@@ -1946,6 +2050,7 @@ def ver_eventos():
                 eventos_cercanos.append(evento)
         eventos = eventos_cercanos
 
+    # Ordenar eventos
     if orden_ubicacion == 'cercanos' and user_latitude is not None and user_longitude is not None:
         eventos.sort(key=lambda evento: evento.get('distancia_km', float('inf')))
     else:
@@ -1954,6 +2059,7 @@ def ver_eventos():
             reverse=orden_fecha != 'antiguos'
         )
 
+    # Obtener categorías de la BD completa
     categorias = sorted({
         evento.get('categoria', 'General')
         for evento in get_events_from_db()
@@ -1968,6 +2074,7 @@ def ver_eventos():
         categorias=categorias,
         busqueda=busqueda,
         categoria_seleccionada=categoria_seleccionada,
+        tipo_eventos=tipo_eventos,
         orden_fecha=orden_fecha,
         orden_ubicacion=orden_ubicacion,
         user_latitude=user_latitude,
@@ -2010,6 +2117,7 @@ def detalle_evento(evento_id):
 @login_required
 def registrar_evento(evento_id):
     if request.method == 'POST':
+        finalize_due_events()
         dni, username = get_current_user_dni_username()
         if not dni:
             flash('No se encontró tu DNI. Por favor, actualiza tu perfil.', 'error')
@@ -2578,27 +2686,62 @@ def soporte():
 
 @app.route('/enviar-ticket', methods=['POST'])
 def enviar_ticket():
-    nombre_usuario = request.form.get('nombre', '').strip()
-    legajo_usuario = request.form.get('legajo', '').strip()
-    email_usuario = request.form.get('email', '').strip()
+
+
+    nombre_usuario = request.form.get('nombre')
+    legajo_usuario = request.form.get('legajo')
+    email_usuario = request.form.get('email')
     prioridad = request.form.get('prioridad')
     categoria = request.form.get('categoria')
-    mensaje = request.form.get('descripcion', '').strip()
+    mensaje = request.form.get('descripcion')
 
-    if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+", nombre_usuario):
-        flash('El nombre solo puede contener letras, espacios, apóstrofes y guiones.', 'error')
-        return redirect(url_for('soporte'))
-    if not re.fullmatch(r'\d{1,8}', legajo_usuario):
-        flash('El Legajo o DNI debe contener solo números y hasta 8 dígitos.', 'error')
-        return redirect(url_for('soporte'))
-    
-    ticket_id = int(time.time())
+    try:
+
+        conexion = conectar()
+        cursor = conexion.cursor()
+
+        sql = """
+        INSERT INTO tickets
+        (nombre, legajo, email, prioridad, categoria, descripcion)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+
+        valores = (
+            nombre_usuario,
+            legajo_usuario,
+            email_usuario,
+            prioridad,
+            categoria,
+            mensaje
+        )
+
+        cursor.execute(sql, valores)
+        conexion.commit()
+
+        ticket_id = cursor.lastrowid
+
+        cursor.close()
+        conexion.close()
+
+    except Exception as error:
+
+        print("Error al guardar el ticket:", error)
+
+        return f"""
+        <div style="font-family:Arial; text-align:center; margin-top:50px;">
+            <h2 style="color:red;">Error al guardar el ticket</h2>
+            <p>{error}</p>
+            <a href="/">Volver al formulario</a>
+        </div>
+        """
 
     msg = MIMEMultipart()
+
     msg['From'] = GMAIL_USER
     msg['To'] = GMAIL_USER
-    
+
     msg['Subject'] = f"TICKET #{ticket_id} [{categoria}] - De: {nombre_usuario}"
+
 
     cuerpo_correo = f"""
 NUEVO TICKET DE SOPORTE: #{ticket_id}
@@ -2610,41 +2753,204 @@ Categoría: {categoria}
 Prioridad: {prioridad}
 
 Descripción del problema:
+
 {mensaje}
 
 __________________________________________
+
 Sistema de Gestión de Eventos
 UTN Facultad Regional San Francisco
 """
 
     msg.attach(MIMEText(cuerpo_correo, 'plain'))
 
+
     file = request.files.get('adjunto')
+
     if file and file.filename != '':
+
         try:
+
             part = MIMEBase('application', 'octet-stream')
+
             part.set_payload(file.read())
+
             encoders.encode_base64(part)
+
             part.add_header(
                 'Content-Disposition',
-                f'attachment; filename={file.filename}',
+                f'attachment; filename={file.filename}'
             )
-            msg.attach(part)
-        except Exception as file_error:
-            print("Error al adjuntar archivo:", file_error)
 
+            msg.attach(part)
+
+        except Exception as file_error:
+
+            print("Error al adjuntar archivo:", file_error)
+  
     try:
+
         server = smtplib.SMTP('smtp.gmail.com', 587)
+
         server.starttls()
+
         server.login(GMAIL_USER, GMAIL_PASS)
+
         server.send_message(msg)
+
         server.quit()
 
-        return render_template('ticket_enviado.html', ticket_id=ticket_id)
+        return f"""
+        <div style="font-family:Arial; text-align:center; margin-top:50px;">
 
-    except Exception as e:
-        print("Error:", e)
-        return render_template('ticket_error.html', error=e), 500
+            <h2 style="color:green;">
+                Hola, recibimos tu ticket #{ticket_id}.
+            </h2>
+
+            <p>
+                Nuestro equipo lo revisará a la brevedad.
+            </p>
+
+            <p>
+                Guardá el número de ticket: <strong>#{ticket_id}</strong>
+            </p>
+
+            <a href="/">
+                Volver al formulario
+            </a>
+
+        </div>
+        """
+
+
+    except Exception as error:
+
+        print("Error al enviar el correo:", error)
+
+        return f"""
+        <div style="font-family:Arial; text-align:center; margin-top:50px;">
+
+            <h2 style="color:red;">
+                El ticket fue guardado, pero hubo un error al enviar el correo.
+            </h2>
+
+            <p>
+                Número de ticket: <strong>#{ticket_id}</strong>
+            </p>
+
+            <p>
+                Error: {error}
+            </p>
+
+            <a href="/">
+                Volver
+            </a>
+
+        </div>
+        """
+@app.route('/panel')
+def panel():
+
+    conexion = conectar()
+    cursor = conexion.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM tickets ORDER BY id DESC")
+
+    tickets = cursor.fetchall()
+
+    cursor.close()
+    conexion.close()
+
+    return render_template('panel.html', tickets=tickets)
+
+@app.route('/solucionar/<int:ticket_id>', methods=['POST'])
+def solucionar(ticket_id):
+
+
+    conexion = conectar()
+    cursor = conexion.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT * FROM tickets WHERE id = %s",
+        (ticket_id,)
+    )
+
+    ticket = cursor.fetchone()
+
+    cursor.close()
+    conexion.close()
+
+    if not ticket:
+        return "Ticket no encontrado"
+
+    conexion = conectar()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        """
+        UPDATE tickets
+        SET estado = 'solucionado'
+        WHERE id = %s
+        """,
+        (ticket_id,)
+    )
+
+    conexion.commit()
+
+    cursor.close()
+    conexion.close()
+
+
+    msg = MIMEMultipart()
+
+    msg['From'] = GMAIL_USER
+    msg['To'] = ticket['email']
+
+    msg['Subject'] = f"Ticket #{ticket_id} solucionado"
+
+
+    cuerpo_correo = f"""
+Hola {ticket['nombre']},
+
+Te informamos que tu ticket de soporte #{ticket_id} ha sido solucionado.
+
+Categoría: {ticket['categoria']}
+
+Descripción del problema:
+
+{ticket['descripcion']}
+
+Si el problema continúa, podés generar un nuevo ticket.
+
+Saludos,
+
+Equipo de Soporte
+UTN Facultad Regional San Francisco
+"""
+
+    msg.attach(MIMEText(cuerpo_correo, 'plain'))
+
+    try:
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+
+        server.starttls()
+
+        server.login(GMAIL_USER, GMAIL_PASS)
+
+        server.send_message(msg)
+
+        server.quit()
+
+        print("Correo de solución enviado correctamente.")
+
+    except Exception as error:
+
+        print("Error al enviar correo:", error)
+
+
+    return redirect('/panel')
+    return render_template('ticket_error.html', error=e), 500
 
 # ============ RUTAS DE SEGUIMIENTO Y NOTIFICACIONES ============
 
@@ -3390,12 +3696,14 @@ def procesar_recordatorios():
         auth_token = request.args.get('token') or request.form.get('token')
         # Puedes agregar validación de token aquí si lo deseas
         
+        eventos_finalizados = finalize_due_events()
         cantidad_procesados = process_pending_event_reminders()
         
         return jsonify({
             'success': True,
             'message': f'Se procesaron {cantidad_procesados} recordatorios pendientes',
-            'records_processed': cantidad_procesados
+            'records_processed': cantidad_procesados,
+            'events_finalized': eventos_finalizados
         })
     except Exception as ex:
         print(f"[ERROR] procesar_recordatorios: {ex}")

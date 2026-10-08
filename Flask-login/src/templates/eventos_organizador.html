@@ -92,7 +92,7 @@
             {% endif %}
             <div class="organizador-event-info">
               <h2>{{ evento.titulo }}</h2>
-              <p> &nbsp; {{ evento.fecha }}  {{ evento.hora }} · {{ evento.lugar }}</p>
+              <p> &nbsp; {{ evento.fecha }}  {{ evento.hora }}{% if evento.hora_fin %} a {{ evento.hora_fin }}{% endif %} · {{ evento.lugar }}</p>
               <p> &nbsp; Capacidad máxima: {{ evento.capacidad_maxima }}</p>
               <hr>
               {% if evento.finalizado %}

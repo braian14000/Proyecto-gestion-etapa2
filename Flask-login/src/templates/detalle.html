@@ -23,7 +23,8 @@
             <img src="{{ url_for('static', filename=evento.imagen) }}" alt="Imagen de {{ evento.titulo }}" style="width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; margin-bottom: 18px;">
             {% endif %}
             <p><strong> Fecha:</strong> {{ evento.fecha }}</p>
-            <p><strong> Horario:</strong> {{ evento.hora }}</p>
+            <p><strong> Comienza:</strong> {{ evento.hora }}</p>
+            <p><strong> Finaliza:</strong> {{ evento.hora_fin or 'No definido' }}</p>
             <p><strong>Lugar:</strong> {{ evento.lugar }}</p>
             {% if evento.latitud is not none and evento.longitud is not none %}
             <div id="event-detail-map" aria-label="Ubicación del evento en el mapa"></div>

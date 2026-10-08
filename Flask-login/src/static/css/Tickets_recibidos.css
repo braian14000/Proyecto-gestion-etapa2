@@ -1,0 +1,65 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 30px;
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #222;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #1f2937;
+}
+
+h2 {
+    text-align: center;
+    color: #4b5563;
+    margin-bottom: 30px;
+}
+
+.ticket {
+    background: white;
+    max-width: 850px;
+    margin: 20px auto;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+
+.ticket h3 {
+    margin-top: 0;
+    color: #2563eb;
+}
+
+.ticket p {
+    margin: 8px 0;
+}
+
+.estado {
+    font-weight: bold;
+}
+
+button {
+    margin-top: 15px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 7px;
+    background-color: #2563eb;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #1d4ed8;
+}
+
+.solucionado {
+    color: #16a34a;
+    font-weight: bold;
+}

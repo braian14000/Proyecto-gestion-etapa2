@@ -14,7 +14,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, process_pending_event_reminders
+from app import app, finalize_due_events, process_pending_event_reminders
 from datetime import datetime
 
 def main():
@@ -23,7 +23,10 @@ def main():
     
     try:
         with app.app_context():
+            eventos_finalizados = finalize_due_events()
             cantidad = process_pending_event_reminders()
+            if eventos_finalizados > 0:
+                print(f"[{datetime.now()}] Se finalizaron {eventos_finalizados} eventos automáticamente")
             if cantidad > 0:
                 print(f"[{datetime.now()}] ✓ Se procesaron {cantidad} recordatorios")
             else:

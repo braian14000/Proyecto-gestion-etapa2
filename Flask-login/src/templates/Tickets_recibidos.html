@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='panel.css') }}">
+    <meta charset="UTF-8">
+    <title>Panel de Soporte</title>
+</head>
+
+<body>
+
+    <h1>Tickets recibidos</h1>
+
+    {% for ticket in tickets %}
+
+       <div class="ticket">
+            <h3>Ticket #{{ ticket.id }}</h3>
+
+            <p><strong>Nombre:</strong> {{ ticket.nombre }}</p>
+            <p><strong>Legajo:</strong> {{ ticket.legajo }}</p>
+            <p><strong>Email:</strong> {{ ticket.email }}</p>
+            <p><strong>Prioridad:</strong> {{ ticket.prioridad }}</p>
+            <p><strong>Categoría:</strong> {{ ticket.categoria }}</p>
+            <p><strong>Descripción:</strong> {{ ticket.descripcion }}</p>
+
+            <p>
+                <strong>Estado:</strong> {{ ticket.estado }}
+            </p>
+
+            {% if ticket.estado != 'solucionado' %}
+
+                <form action="/solucionar/{{ ticket.id }}" method="POST">
+                    <button type="submit">
+                        Marcar como solucionado
+                    </button>
+                </form>
+
+            {% else %}
+
+                <p class="solucionado">✅ Ticket solucionado</p>
+
+            {% endif %}
+
+            <hr>
+
+        </div>
+
+    {% else %}
+
+        <p>No hay tickets registrados.</p>
+
+    {% endfor %}
+
+</body>
+</html>
